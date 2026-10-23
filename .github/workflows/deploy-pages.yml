@@ -1,0 +1,67 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+          sparse-checkout: |
+            pages
+            web/runner/dda-rs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install UI dependencies
+        working-directory: pages
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install Rust and WebAssembly target
+        run: rustup toolchain install 1.99.1 --profile minimal --target wasm32-unknown-unknown && rustup default 1.99.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: pages/wasm
+      - name: Install WebAssembly bindings
+        run: cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - name: Build original DDA engine
+        working-directory: pages
+        run: pnpm wasm
+      - name: Get verified browser Python runtime
+        working-directory: pages
+        run: pnpm runtime
+      - name: Check and build
+        working-directory: pages
+        run: |
+          pnpm check
+          pnpm build
+          node tests/verify-engine.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages/dist
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

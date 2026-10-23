@@ -1,6 +1,14 @@
 # DDA Analysis
 
-A browser workspace for the existing DDALab pooled cross-trial workflow, running entirely on Vercel at **https://dda-analysis-deployed.vercel.app**.
+The free browser edition is built for **[GitHub Pages](https://samanthalin-meep.github.io/DDA-Analysis-Deployed/)**. Its source is in [`pages/`](pages/). Each push to `main` builds and deploys the website with GitHub Actions.
+
+Select **Upload recording**, select the EDF, acquisition TXT, and conditions CSV, then select electrodes and conditions. Preparation runs on the device. The prepared trial files open directly in the analysis workspace. Files and results stay in the browser; exports download to the device. No MATLAB installation, license upload, Vercel storage, or server account is needed by visitors.
+
+The browser edition reuses the preserved Rust DDA engine through WebAssembly and translates the original MATLAB/EEGLAB preparation recipe to NumPy/SciPy through Pyodide. It recreates the desktop layout and core workflow. See [`pages/README.md`](pages/README.md) for features, numerical validation, build steps, and browser limits.
+
+## Legacy Vercel implementation
+
+The previous Vercel implementation remains in `web/` for reference. It depends on paid or quota-limited Vercel services. The following sections document that implementation, not the GitHub Pages browser edition.
 
 The browser runs the original DDALAB Pooled 1.2.10 Qt program. Its panels, settings, trial selection, plots, and exports use the supplied desktop source. Browser controls follow the native controls for keyboard and accessibility access. Select **Upload recording**, then select the EDF, TXT log, and conditions CSV. MATLAB prepares the data in the background. The prepared files open in DDALab. Use its existing controls to run an analysis. **Open File** also accepts prepared CSVs and the other desktop formats.
 

@@ -1,0 +1,239 @@
+programs/eeglab2026.0.0/functions/popfunc/eeg_interp.m
+% EEG_INTERP - interpolate data channels
+%
+% Usage: EEGOUT = eeg_interp(EEG, badchans, method, t_range);
+%
+% Inputs:
+%     EEG      - EEGLAB dataset
+%     badchans - [integer array] indices of channels to interpolate.
+%                For instance, these channels might be bad.
+%                [chanlocs structure] channel location structure containing
+%                either locations of channels to interpolate or a full
+%                channel structure (missing channels in the current
+%                dataset are interpolated).
+%     method   - [string] method used for interpolation (default is 'spherical').
+%                'invdist'/'v4' uses inverse distance on the scalp
+%                'spherical' uses superfast spherical interpolation.
+%                'sphericalKang' uses Kang et al. 2015 parameters
+%                'spacetime' uses griddata3 to interpolate both in space
+%                and time (very slow and cannot be interrupted).
+%     t_range  - [integer array with just two elements] time interval of the
+%                badchans which should be interpolated. First element is
+%                the start time and the second element is the end time.
+%     params   - [1x3 array] Parameters [lambda m n]. Defaults are
+%                'spherical'     -> lambda=0, m = 4, n =7 (Perin et al., 1989)
+%                'sphericalKang' -> lambda=1e-8, m = 3 , n = 50 (Kang et al., 2015)
+%                if the 'params' input is used, then a spherical
+%                interpolation is used with these parameters (method is
+%                ignored). See also https://github.com/sccn/eeglab/issues/500
+% Output:
+%     EEGOUT   - data set with bad electrode data replaced by
+%                interpolated data
+%
+% Note: See also the sphericalSplineInterpolate function of the clean_rawdata
+%       EEGLAB plugin (in the private folder) which approximate Legendre
+%       polynomials with up to 500 iteration.                  .
+%
+% References:
+% Perrin, F., Pernier, J., Bertrand, O., & Echallier, J. F. (1989). Spherical
+% splines for scalp potential and current density mapping. Electroencephalography
+% and clinical neurophysiology, 72(2), 184–187. https://doi.org/10.1016/0013-4694(89)90180-6
+%
+% Kang, S.S., Lano, T.J. & Sponheim, S.R. Distortions in EEG interregional phase
+% synchrony by spherical spline interpolation: causes and remedies. Neuropsychiatr
+% Electrophysiol 1, 9 (2015). https://doi.org/10.1186/s40810-015-0009-5
+%
+% Author: Arnaud Delorme, CERCO, CNRS, Mai 2006-
+
+% Copyright (C) Arnaud Delorme, CERCO, 2006, arno@salk.edu
+%
+% This file is part of EEGLAB, see http://www.eeglab.org
+% for the documentation and details.
+%
+% Redistribution and use in source and binary forms, with or without
+% modification, are permitted provided that the following conditions are met:
+%
+% 1. Redistributions of source code must retain the above copyright notice,
+% this list of conditions and the following disclaimer.
+%
+% 2. Redistributions in binary form must reproduce the above copyright notice,
+% this list of conditions and the following disclaimer in the documentation
+% and/or other materials provided with the distribution.
+%
+% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+% LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+% THE POSSIBILITY OF SUCH DAMAGE.
+
+
+programs/eeglab2026.0.0/plugins/firfilt/firws.m
+%firws() - Designs windowed sinc type I linear phase FIR filter
+%
+% Usage:
+%   >> b = firws(m, f);
+%   >> b = firws(m, f, w);
+%   >> b = firws(m, f, t);
+%   >> b = firws(m, f, t, w);
+%
+% Inputs:
+%   m - filter order (mandatory even)
+%   f - vector or scalar of cutoff frequency/ies (-6 dB;
+%       pi rad / sample)
+%
+% Optional inputs:
+%   w - vector of length m + 1 defining window {default hamming}
+%   t - 'high' for highpass, 'stop' for bandstop filter {default low-/
+%       bandpass}
+%
+% Output:
+%   b - filter coefficients
+%
+% Example:
+%   fs = 500; cutoff = 0.5; df = 1;
+%   m  = firwsord('hamming', fs, df);
+%   b  = firws(m, cutoff / (fs / 2), 'high', windows('hamming', m + 1));
+%
+% References:
+%   Smith, S. W. (1999). The scientist and engineer's guide to digital
+%   signal processing (2nd ed.). San Diego, CA: California Technical
+%   Publishing.
+%
+% Author: Andreas Widmann, University of Leipzig, 2005
+%
+% See also:
+%   firwsord, invfirwsord, kaiserbeta, windows
+
+%123456789012345678901234567890123456789012345678901234567890123456789012
+
+% Copyright (C) 2005 Andreas Widmann, University of Leipzig, widmann@uni-leipzig.de
+%
+% This program is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 2 of the License, or
+% (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program; if not, write to the Free Software
+% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+%
+% $Id$
+
+
+programs/eeglab2026.0.0/plugins/firfilt/firfilt.m
+% firfilt() - Pad data with DC constant, filter data with FIR filter,
+%             and shift data by the filter's group delay
+%
+% Usage:
+%   >> EEG = firfilt(EEG, b, nFrames);
+%   >> EEG = firfilt(EEG, b, nFrames, chaninds);
+%
+% Inputs:
+%   EEG           - EEGLAB EEG structure
+%   b             - vector of filter coefficients
+%
+% Optional inputs:
+%   nFrames       - number of frames to filter per block {default 1000}
+%   chaninds      - channel indices {default all}
+%
+% Outputs:
+%   EEG           - EEGLAB EEG structure
+%
+% Note:
+%   Higher values for nFrames increase speed and working memory
+%   requirements.
+%
+% Author: Andreas Widmann, University of Leipzig, 2005
+%
+% See also:
+%   filter, findboundaries
+
+%123456789012345678901234567890123456789012345678901234567890123456789012
+
+% Copyright (C) 2005 Andreas Widmann, University of Leipzig, widmann@uni-leipzig.de
+%
+% This program is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 2 of the License, or
+% (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program; if not, write to the Free Software
+% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+programs/erplab12.20/pop_functions/pop_artextval.m
+% PURPOSE  : Marking epochs containing activity above an upper threshold and below a lower threshold
+%
+% FORMAT   :
+%
+% >> EEG = pop_artextval(EEG, parameters);
+%
+% INPUTS   :
+%
+% EEG           - input dataset
+%
+% The available parameters are as follows:
+%
+%        'Twindow' 	- time period (in ms) to apply this tool (start end). Example [-200 800]
+%        'Threshold'    - range of amplitude (in uV). e.g  -100 100
+%        'Channel' 	- channel(s) to search artifacts.
+%        'LowPass' - Apply low pass filter at provided half-amplitude
+%                           cutoff (FIR @ 26 filter order).
+%                           Default: -1/Do Not Apply
+%        'Flag'         - flag value between 1 to 8 to be marked when an artifact is found.(1 value)
+%        'Review'       - open a popup window for scrolling marked epochs.
+%
+% OUTPUTS  :
+%
+% EEG           - updated output dataset
+%
+% EXAMPLE  :
+%
+% EEG  = pop_artextval( EEG , 'Channel',  1:16, 'Flag',  1, 'Threshold', [ -100 100], 'Twindow', [ -200 798] );%
+%
+% See also pop_artblink pop_artderiv pop_artdiff pop_artflatline pop_artmwppth pop_artstep artifactmenuGUI.m markartifacts.m
+%
+% *** This function is part of ERPLAB Toolbox ***
+% Author: Javier Lopez-Calderon
+% Center for Mind and Brain
+% University of California, Davis,
+% Davis, CA
+% 2009
+
+%b8d3721ed219e65100184c6b95db209bb8d3721ed219e65100184c6b95db209b
+%
+% ERPLAB Toolbox
+% Copyright � 2007 The Regents of the University of California
+% Created by Javier Lopez-Calderon and Steven Luck
+% Center for Mind and Brain, University of California, Davis,
+% javlopez@ucdavis.edu, sjluck@ucdavis.edu
+%
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.

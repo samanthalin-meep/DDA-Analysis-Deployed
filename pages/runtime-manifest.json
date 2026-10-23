@@ -1,0 +1,18 @@
+{
+  "version": "0.27.7",
+  "source": "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/",
+  "files": {
+    "pyodide-lock.json": "9c45b916001a750f4102fc287494f3eab215909c7535c626a20db80fd6333e2c",
+    "pyodide.mjs": "04c052c815abb0bf2981fa38c2dfa58e3120ee5288c956df2b2a15e301782c5f",
+    "pyodide.js": "b4cb23a53aba19c221659b9fb40a2f18281d685691dc06647fb0afd0681baf98",
+    "pyodide.asm.js": "6b4c90de5b7172873f04f21884d0e9d2274e305fe32116558fe3e4fbe3618d51",
+    "pyodide.asm.wasm": "a50dd1843f805a0b7c45b61037ee0d7b26dfe85efe0e18ef95a34ad24e401f5f",
+    "python_stdlib.zip": "16611534726e5d8ac2bd8f926410b2dcb8d6f49aa24913463533b457a2115c16",
+    "numpy-2.0.2-cp312-cp312-pyodide_2024_0_wasm32.whl": "ebb61241d962b98b21597d7ce43b67668a6d5bab3acec4fbe958657320d7cd08",
+    "scipy-1.14.1-cp312-cp312-pyodide_2024_0_wasm32.whl": "997c50a61564a8ce6a56ea98a42e7f4427e5eb98475a73233e83df6a184f415c",
+    "openblas-0.3.26.zip": "787ea9a8a5cd160204388d03324b3b7ce5c9aea14b5680cec987f837e76c5198",
+    "scikit_learn-1.6.1-cp312-cp312-pyodide_2024_0_wasm32.whl": "022fe0061765894279b4ae1035e40da2cb436efa51d408f8e6214aacad0c631b",
+    "joblib-1.4.0-py3-none-any.whl": "c4a3bb8273356564230296537aae1c175e8fcc6bd998af6b9ab1be74e2d141b6",
+    "threadpoolctl-3.5.0-py3-none-any.whl": "c463e5400524d9edd309fc100f362d774207d1e51321b92b258403ee6c3ba49c"
+  }
+}

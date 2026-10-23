@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-23",
+  "preparationRuntime": "Pyodide 0.27.7, NumPy 2.0.2, SciPy 1.14.1, WebAssembly",
+  "sample": "Sample_I1_R3 EDF/TXT/CSV",
+  "epochs": 380,
+  "retainedTrials": 283,
+  "conditionTrials": [145, 28, 27, 30, 24, 29],
+  "interpolatedChannels": [17, 20, 25, 32, 43, 44, 48, 87, 104, 112, 119],
+  "E1PreparedCSVMatchesOriginalMatlabBytes": true,
+  "E1PreparedCSV_SHA256": "007778d72ae03021c097a6eef1556d9651d2bb3b416fdb189c074a8652076cc3",
+  "E129ComparedSamples": 1415,
+  "E129MaximumDifferenceMicrovolts": 0,
+  "E17ComparedSamples": 1415,
+  "E17MaximumDifferenceMicrovolts": 0.012664794921875,
+  "E17RmsDifferenceMicrovolts": 0.0010996469874764686,
+  "actualBrowserAnalysis": {
+    "preparedCSVOpened": true,
+    "conditions": 6,
+    "windows": 19,
+    "coefficientsCompared": 114,
+    "maximumDifferenceFromNative": 0,
+    "csvDownloadVerified": true
+  },
+  "engineUnitCheck": {
+    "variants": 10,
+    "independentCTWindows": 34,
+    "independentCTMaximumDifference": 1.7208456881689926e-15
+  },
+  "remainingBrowserChecks": "Local preview browser access was declined. Later three-file chooser, session reload/round-trip, and PNG download checks were not completed through the browser."
+}
