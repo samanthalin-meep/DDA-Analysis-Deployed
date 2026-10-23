@@ -51,6 +51,21 @@ p.terminate()
 PY
 bin/ddalab --version
 rm -rf runtime-installer matlab-runtime.zip preparation.tar.gz engine.tar.gz
+sudo apt-get clean
+rm -rf /root/.cache/pip /var/lib/apt/lists/*
+# Release the deleted 5 GB installer and extraction blocks before snapshotting.
+sync
+if ! sudo fstrim -v /; then
+  # Vercel's virtual disk does not always expose discard. Zero free blocks so
+  # deleted installer data compresses away instead of consuming snapshot quota.
+  available=$(df --output=avail -B1 / | tail -n 1)
+  blocks=$((available / 16777216 - 16))
+  if (( blocks > 0 )); then
+    dd if=/dev/zero of=/tmp/dda-empty-space bs=16M count="$blocks" conv=fsync status=none
+    rm -f /tmp/dda-empty-space
+    sync
+  fi
+fi
 python3 - <<'PY'
 import json
 from pathlib import Path

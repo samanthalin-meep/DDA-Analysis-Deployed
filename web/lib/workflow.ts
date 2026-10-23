@@ -37,14 +37,14 @@ export async function provision(session: string, id: string) {
   const cached = await readJson<{snapshotId: string}>(SNAPSHOT_KEY);
   let sandbox: Sandbox | undefined;
   if (cached) {
-    try {sandbox = await Sandbox.create({source: {type: 'snapshot', snapshotId: cached.snapshotId}, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});} catch { /* Expired snapshots are rebuilt. */ }
+    try {sandbox = await Sandbox.create({source: {type: 'snapshot', snapshotId: cached.snapshotId}, persistent: false, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});} catch { /* Expired snapshots are rebuilt. */ }
   }
   if (sandbox) {
     job.sandboxId = sandbox.name;
     await startRun(job, sandbox);
     return;
   }
-  sandbox = await Sandbox.create({image: 'dda-ubuntu:24.04', timeout: 40 * 60 * 1000, resources: {vcpus: 4}});
+  sandbox = await Sandbox.create({image: 'dda-ubuntu:24.04', persistent: false, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});
   job.sandboxId = sandbox.name;
   await saveJob(job);
   // The official Ubuntu image starts as root and does not include sudo yet.
@@ -81,9 +81,11 @@ export async function advance(session: string, id: string): Promise<boolean> {
       }
       await saveJob(job); return false;
     }
+    job.stage = 'Saving the reusable analysis environment'; job.progress = 7;
+    await saveJob(job);
     const snapshot = await sandbox.snapshot();
     await writeJson(SNAPSHOT_KEY, {snapshotId: snapshot.snapshotId, createdAt: new Date().toISOString()});
-    const ready = await Sandbox.create({source: {type: 'snapshot', snapshotId: snapshot.snapshotId}, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});
+    const ready = await Sandbox.create({source: {type: 'snapshot', snapshotId: snapshot.snapshotId}, persistent: false, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});
     job.sandboxId = ready.name;
     await startRun(job, ready);
     return false;
