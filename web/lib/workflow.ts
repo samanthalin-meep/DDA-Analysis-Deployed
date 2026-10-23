@@ -37,7 +37,7 @@ export async function provision(session: string, id: string) {
   const cached = await readJson<{snapshotId: string}>(SNAPSHOT_KEY);
   let sandbox: Sandbox | undefined;
   if (cached) {
-    try {sandbox = await Sandbox.create({source: {type: 'snapshot', snapshotId: cached.snapshotId}, persistent: false, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});} catch { /* Expired snapshots are rebuilt. */ }
+    try {sandbox = await Sandbox.create({source: {type: 'snapshot', snapshotId: cached.snapshotId}, persistent: false, timeout: 40 * 60 * 1000, resources: {vcpus: 4}});} catch (error) {console.warn('Runtime snapshot could not be restored:', error instanceof Error ? error.message : String(error));}
   }
   if (sandbox) {
     job.sandboxId = sandbox.name;
