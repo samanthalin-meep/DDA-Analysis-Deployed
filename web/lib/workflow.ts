@@ -44,9 +44,14 @@ export async function provision(session: string, id: string) {
     await startRun(job, sandbox);
     return;
   }
-  sandbox = await Sandbox.create({image: 'vercel/sandbox/ubuntu', timeout: 40 * 60 * 1000, resources: {vcpus: 4}});
+  sandbox = await Sandbox.create({image: 'dda-ubuntu:24.04', timeout: 40 * 60 * 1000, resources: {vcpus: 4}});
   job.sandboxId = sandbox.name;
   await saveJob(job);
+  // The official Ubuntu image starts as root and does not include sudo yet.
+  const update = await sandbox.runCommand({cmd: 'apt-get', args: ['update', '-qq']});
+  if (update.exitCode !== 0) throw new Error('Could not initialize the Ubuntu runtime package index.');
+  const tools = await sandbox.runCommand({cmd: 'env', args: ['DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', '-y', '--no-install-recommends', 'sudo', 'python3', 'python3.12', 'python3.12-venv', 'curl', 'ca-certificates']});
+  if (tools.exitCode !== 0) throw new Error('Could not install the initial analysis runtime tools.');
   await sandbox.mkDir(ROOT);
   const archive = await readFile(join(process.cwd(), 'public', 'runner-source.tar.gz'));
   await sandbox.writeFiles([{path: `${ROOT}/runner.tar.gz`, content: archive}]);

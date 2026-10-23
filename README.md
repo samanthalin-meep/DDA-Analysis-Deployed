@@ -16,6 +16,8 @@ The deployable Next.js application is in **`web/`**. Set the Vercel project's **
 
 Connect a **private** Vercel Blob store to the project for Production, Preview, and Development. Vercel provides `BLOB_READ_WRITE_TOKEN` and/or Blob OIDC configuration. Sandbox uses the project's Vercel OIDC credentials. No MATLAB account, license file, or activation key is needed on Vercel.
 
+The project registry must contain `dda-ubuntu:24.04`, copied from the official Ubuntu Linux/amd64 image pinned at `sha256:a2d43bffc46670d7108bb3c0468c67c5557c4c92e83e1e34cbff1322ad1b94dc`. MATLAB R2025a uses Ubuntu24.04 dependencies. The workflow installs the runtime once and caches a clean snapshot before any recording is loaded.
+
 For local development, install Node.js22+ and pnpm11.25, then run:
 
 ```sh

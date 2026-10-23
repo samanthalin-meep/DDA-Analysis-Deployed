@@ -2,17 +2,13 @@
 set -euo pipefail
 cd /vercel/sandbox/dda
 ROOT="$PWD"
-stage() { python3 - "$1" <<'PY'
-import json,sys
-from pathlib import Path
-p=Path('runtime-status.json');t=p.with_suffix('.tmp');t.write_text(json.dumps({'stage':sys.argv[1]}));t.replace(p)
-PY
+stage() {
+  printf '{"stage":"%s"}\n' "$1" > runtime-status.tmp
+  mv runtime-status.tmp runtime-status.json
 }
-failed() { python3 - <<'PY'
-import json
-from pathlib import Path
-Path('runtime-status.json').write_text(json.dumps({'error':'The analysis environment could not be prepared. Please retry; the installation log is available to the project owner.'}))
-PY
+failed() {
+  printf '%s\n' '{"error":"The analysis environment could not be prepared. Please retry; the installation log is available to the project owner."}' > runtime-status.tmp
+  mv runtime-status.tmp runtime-status.json
 }
 trap failed ERR
 exec > >(tee -a setup.log) 2>&1
