@@ -12,3 +12,8 @@
 web/runner/build/
 web/public/runner-source.tar.gz
 web/lib/runner-version.json
+web/desktop/novnc/
+web/desktop/user/
+web/desktop/session-config.json
+web/public/desktop-source.tar.gz
+web/lib/desktop-version.json

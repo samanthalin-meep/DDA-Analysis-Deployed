@@ -29,7 +29,7 @@ async function sandboxJson<T>(sandbox: Sandbox, path: string): Promise<T | null>
 async function startRun(job: Job, sandbox: Sandbox) {
   await unpackRunner(sandbox);
   const inputs = await Promise.all(job.inputs.map(async f => ({...f, url: await signedRead(f.pathname)})));
-  await sandbox.writeFiles([{path: `${ROOT}/job-config.json`, content: Buffer.from(JSON.stringify({id: job.id, config: job.config, inputs}))}]);
+  await sandbox.writeFiles([{path: `${ROOT}/job-config.json`, content: Buffer.from(JSON.stringify({id: job.id, config: job.config, inputs, preparationOnly:job.preparationOnly===true}))}]);
   const command = await sandbox.runCommand({cmd: 'bash', args: [`${ROOT}/run.sh`], cwd: ROOT, detached: true});
   job.commandId = command.cmdId;
   job.phase = 'run'; job.status = job.inputs.every(f => f.role === 'prepared') ? 'analyzing' : 'preparing';
@@ -139,8 +139,8 @@ export async function advance(session: string, id: string): Promise<boolean> {
     artifacts.push({...file, pathname, size: bytes.length});
   }
   const result = await sandboxJson<AnalysisResult>(sandbox, `${ROOT}/work/output/result.json`);
-  if (!result) throw new Error('The completed analysis result is missing.');
-  job.result = result; job.artifacts = artifacts; job.status = 'complete'; job.stage = 'Ready to explore'; job.progress = 100;
+  if (!result&&!job.preparationOnly) throw new Error('The completed analysis result is missing.');
+  job.result = result||undefined; job.artifacts = artifacts; job.status = 'complete'; job.stage = 'Ready.'; job.progress = 100;
   await saveJob(job);
   try {await sandbox.stop();} catch { /* Results are already saved; expiration also stops the environment. */ }
   return true;

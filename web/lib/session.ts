@@ -22,6 +22,16 @@ export async function getSession(create = false) {
   return id;
 }
 export function requireSameOrigin(request: Request) {
+  requestOrigin(request);
+}
+export function requestOrigin(request: Request) {
+  const target = new URL(request.url);
+  const host = new URL(`${target.protocol}//${request.headers.get('host') || target.host}`).host;
   const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) throw new Error('Request origin does not match this app.');
+  if (origin) {
+    const source = new URL(origin);
+    if (source.protocol !== target.protocol || source.host !== host) throw new Error('Request origin does not match this app.');
+    return source.origin;
+  }
+  return `${target.protocol}//${host}`;
 }

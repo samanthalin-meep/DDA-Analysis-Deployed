@@ -1,17 +1,18 @@
 # DDA Analysis
 
-A browser workspace for the existing DDALab pooled cross-trial workflow, designed to run entirely on Vercel.
+A browser workspace for the existing DDALab pooled cross-trial workflow, running entirely on Vercel at **https://dda-analysis-deployed.vercel.app**.
 
-Upload one EDF recording, its TXT acquisition log, and a conditions CSV. Select electrodes and conditions, then preparation and pooled DDA run in the background. Results open automatically with interactive condition plots, trial counts, and downloads. Prepared trial CSVs can also be analyzed directly.
+The browser runs the original DDALAB Pooled 1.2.10 Qt program. Its panels, settings, trial selection, plots, and exports use the supplied desktop source. Browser controls follow the native controls for keyboard and accessibility access. Select **Upload recording**, then select the EDF, TXT log, and conditions CSV. MATLAB prepares the data in the background. The prepared files open in DDALab. Use its existing controls to run an analysis. **Open File** also accepts prepared CSVs and the other desktop formats.
 
 ## Application
 
 The deployable Next.js application is in **`web/`**. Set the Vercel project's **Root Directory to `web`**.
 
-- Next.js provides the interface and authenticated session APIs.
-- Private Vercel Blob stores uploads, job records, and outputs.
+- Next.js provides the upload dialog and authenticated session APIs.
+- The original Qt interface runs in an isolated Vercel Sandbox and reaches the browser through authenticated noVNC. The desktop layout is preserved. Browser file dialogs and downloads replace operating-system dialogs.
+- Private Vercel Blob stores uploads, job records, outputs, and saved desktop state.
 - Vercel Workflows coordinates durable jobs.
-- Vercel Sandbox runs the compiled MATLAB preparation and preserved Rust pooled-analysis engine.
+- Vercel Sandbox runs the original Qt program, compiled MATLAB preparation, and preserved Rust analysis engine. There is no separately hosted worker.
 - MATLAB Runtime is installed once on a Vercel Drive. Analyses mount a read-only copy of that shared dependency cache and start from a small operating-system snapshot.
 
 Connect a **private** Vercel Blob store to the project for Production, Preview, and Development. Vercel provides `BLOB_READ_WRITE_TOKEN` and/or Blob OIDC configuration. Sandbox uses the project's Vercel OIDC credentials. No MATLAB account, license file, or activation key is needed on Vercel.
@@ -26,7 +27,11 @@ pnpm install
 pnpm dev
 ```
 
-The interface can be previewed without credentials. Actual uploads and processing require the connected Blob store and Vercel compute access.
+The interface requires the connected private Blob store and Vercel Sandbox access. Link the project and run `vercel env pull .env.local` before local development. The normal browser session cookie owns the saved data; clearing it starts a separate session.
+
+The desktop environment is cached as a clean dependency snapshot at the private Blob key `system/desktop/environment-v1.json`. It contains no recording or browser credential. New desktop sessions refresh the source archive. The adapter saves the SQLite database, input files, and exports to the owning session. Desktop sandboxes run for up to 39 minutes and stop after ten idle minutes. Active users reconnect from saved state; hidden browser tabs do not start replacement sandboxes. A short reconnect is expected. The browser polls storage only while a desktop session starts or a recording is processing. Saved-state files are rewritten only when the program state changes. Save exports before clearing browser storage.
+
+Desktop source provenance, browser changes, and the text standard are documented in `web/desktop/SOURCE.md`. Interface text follows ASD-STE100 principles; full standard certification is not claimed.
 
 ## Scientific processing
 
@@ -38,7 +43,7 @@ The native Rust engine source and its MIT license are preserved in `web/runner/d
 
 ### Verification
 
-The locally compiled preparation was checked against an untouched run of the original MATLAB script on the sample recording. Both data and counts CSVs were byte-identical:250 samples×283 retained trials, zero numeric difference. The web runner's pooled CT was checked across all6conditions and19windows against an independent NumPy least-squares calculation: maximum absolute a1difference1.74e−15. Linux/Vercel end-to-end verification is recorded separately as deployment is completed.
+The complete sample EDF/TXT/CSV was uploaded to production and processed on Linux in Vercel Sandbox. Its prepared data and counts CSVs were byte-identical to an untouched local run of the original MATLAB script: 250 samples × 283 retained trials, zero numeric difference. All six conditions and 19 pooled CT windows matched an independent NumPy least-squares calculation, with maximum absolute a₁ difference 1.74 × 10⁻¹⁵. The original desktop loader and CT backend also reproduced all six condition rows exactly. Native CSV export, saved-result reload, and a window-step change passed. The actual Qt analysis interface rendered Graph and Heatmap views on Linux. All six original output files downloaded successfully; a request without the owning browser session was denied. See `web/tests/deployment-verification.json` for the recorded checks.
 
 Executable checks:
 
@@ -47,10 +52,13 @@ cd web
 pnpm test
 pnpm typecheck
 pnpm build
+python tests/test_desktop_state.py
+DDALAB_CLI_PATH=/path/to/ddalab python tests/verify_desktop_backend.py /path/to/prepared.csv /path/to/reference-result.json
 python tests/verify_native_parity.py /path/to/prepared.csv /path/to/ddalab
+python tests/verify_deployed_result.py /path/to/prepared.csv /path/to/result.json
 ```
 
-Each browser receives a separate signed upload session; recording history belongs to that browser session. Output downloads are authorized through the same session and use short-lived private storage URLs.
+Each browser receives a separate signed session; recording history and desktop state belong to that browser session. Output downloads are authorized through the same session and use short-lived private storage URLs.
 
 ## Original desktop snapshot
 

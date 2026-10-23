@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import './globals.css';
-export const metadata: Metadata = {title: 'DDA Analysis — EEG workspace', description: 'Prepare EEG recordings and explore pooled delay differential analysis in one workspace.'};
+import './desktop.css';
+export const metadata: Metadata = {title: 'DDALAB Pooled', description: 'DDALAB Pooled. EEG preparation and DDA analysis.'};
 export default function Layout({children}: Readonly<{children: React.ReactNode}>) {
   return <html lang="en"><body>{children}</body></html>;
 }

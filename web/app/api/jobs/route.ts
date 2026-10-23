@@ -35,7 +35,8 @@ export async function POST(request: Request) {
       if (stored.size !== input.size) throw new Error(`${input.name}: upload has not finished. Try again.`);
     }
     const now = new Date().toISOString();
-    const job: Job = {id: randomUUID(), session, config, inputs, sourceJobId: body.sourceJobId, status: 'queued', stage: 'Recording queued', progress: 0, createdAt: now, updatedAt: now, artifacts: []};
+    if(body.preparationOnly!==undefined&&typeof body.preparationOnly!=='boolean')throw Error('Invalid preparation mode.');
+    const job: Job = {id: randomUUID(), session, config, inputs, sourceJobId: body.sourceJobId, preparationOnly:body.preparationOnly===true, status: 'queued', stage: 'Recording queued', progress: 0, createdAt: now, updatedAt: now, artifacts: []};
     await saveJob(job);
     try {await start(analysisWorkflow, [session, job.id]);}
     catch (error) {job.status = 'failed'; job.error = 'Could not start the background job. Please retry.'; await saveJob(job); throw error;}

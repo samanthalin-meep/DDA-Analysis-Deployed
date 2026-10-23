@@ -7,8 +7,9 @@ export async function POST(request: Request) {
     const result = await handleUpload({body, request,
       onBeforeGenerateToken: async (pathname) => {
         const session = await getSession();
-        if (!pathname.startsWith(`sessions/${session}/uploads/`) || pathname.includes('..') || !/\.(edf|txt|csv)$/i.test(pathname)) throw new Error('Invalid upload destination.');
-        return {maximumSizeInBytes: pathname.toLowerCase().endsWith('.edf') ? 512 * 1024 ** 2 : 64 * 1024 ** 2, addRandomSuffix: false, tokenPayload: JSON.stringify({session}), validUntil: Date.now() + 60 * 60 * 1000};
+        const native=pathname.startsWith(`sessions/${session}/uploads/native/`);
+        if (!pathname.startsWith(`sessions/${session}/uploads/`) || pathname.includes('..') || !native&&!/\.(edf|txt|csv)$/i.test(pathname)) throw new Error('Invalid upload destination.');
+        return {maximumSizeInBytes: native||pathname.toLowerCase().endsWith('.edf') ? 512 * 1024 ** 2 : 64 * 1024 ** 2, addRandomSuffix: false, tokenPayload: JSON.stringify({session}), validUntil: Date.now() + 60 * 60 * 1000};
       },
       onUploadCompleted: async () => {},
     });

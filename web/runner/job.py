@@ -208,12 +208,13 @@ def run():
     for path in OUT.glob('*_Counts.csv'):
         with path.open(encoding='utf-8-sig', newline='') as f:
             counts = [{k: (v if k == 'condition' else int(v)) for k,v in row.items()} for row in csv.DictReader(f)]
-    signals = analyze(config, prepared)
+    signals = [] if settings.get('preparationOnly') else analyze(config, prepared)
     assets_file = ROOT / 'runtime-assets.json'
     assets = json.loads(assets_file.read_text()) if assets_file.exists() else {}
     preparation = dict(recipe='DDA_prep.m', compiled=bool(files), config=config, runtime=assets.get('matlab', {}))
-    result = dict(recordingId=config['recordingId'], counts=counts, signals=signals, preparation=preparation, engine='DDALab pooled CT · Rust')
-    atomic_json(OUT / 'result.json', result)
+    if not settings.get('preparationOnly'):
+        result = dict(recordingId=config['recordingId'], counts=counts, signals=signals, preparation=preparation, engine='DDALab pooled CT · Rust')
+        atomic_json(OUT / 'result.json', result)
     atomic_json(OUT / 'provenance.json', dict(preparation=preparation,
         artifacts=[dict(name=p.name, bytes=p.stat().st_size, sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in prepared]))
     artifacts = []

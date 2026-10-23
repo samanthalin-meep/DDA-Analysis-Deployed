@@ -20,7 +20,7 @@ export type SignalResult = {
 };
 export type AnalysisResult = {recordingId: string; counts: ConditionCount[]; signals: SignalResult[]; preparation: Record<string, unknown>; engine: string};
 export type Job = {
-  id: string; session: string; config: AnalysisConfig; inputs: InputFile[]; sourceJobId?: string;
+  id: string; session: string; config: AnalysisConfig; inputs: InputFile[]; sourceJobId?: string; preparationOnly?: boolean;
   status: 'queued' | 'initializing' | 'preparing' | 'analyzing' | 'complete' | 'failed';
   stage: string; progress: number; createdAt: string; updatedAt: string;
   sandboxId?: string; commandId?: string; phase?: 'setup' | 'waiting-runtime' | 'run';

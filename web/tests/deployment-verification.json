@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-23",
+  "application": "https://dda-analysis-deployed.vercel.app",
+  "sample": "Sample_I1_R3_data/Sample_I1_R3.edf",
+  "pipeline": "Private upload \u2192 original compiled MATLAB preparation \u2192 native Rust pooled CT \u2192 private exports",
+  "preparation": {
+    "passed": true,
+    "reference": "Untouched original DDA_prep.m run locally",
+    "platform": "Linux, Vercel Sandbox",
+    "samples": 250,
+    "retainedTrials": 283,
+    "maximumAbsoluteError": 0,
+    "dataByteIdentical": true,
+    "countsByteIdentical": true,
+    "preparedSHA256": "007778d72ae03021c097a6eef1556d9651d2bb3b416fdb189c074a8652076cc3"
+  },
+  "pooledAnalysis": {
+    "passed": true,
+    "reference": "Independent NumPy least-squares fits across every condition and window",
+    "conditions": 6,
+    "windows": 19,
+    "maximumAbsoluteCoefficientError": 1.7312540290248535e-15
+  },
+  "exports": {
+    "downloadedAndVerified": 6,
+    "unauthenticatedJobRequestStatus": 404
+  },
+  "runtimeReuse": {
+    "readOnlyDriveInitializationPassed": true,
+    "fullRawRecordingRepeatedOnSharedDrive": true,
+    "browserPreparedAnalysisPassed": true
+  },
+  "browser": {
+    "status": "pending_external_service_access",
+    "completed": [
+      "Original Qt interface rendered in the browser",
+      "Native navigation and recording dialog opened",
+      "All three file prompts selected sample files",
+      "Sample recording uploaded and preparation started"
+    ],
+    "remaining": [
+      "Live private-storage file transfer into the native program",
+      "Browser export downloads",
+      "Saved-session restore across replacement sandboxes"
+    ],
+    "blocker": "Live integration checks require active private storage."
+  },
+  "nativeDesktop": {
+    "backend": {
+      "passed": true,
+      "trials": 283,
+      "conditions": 6,
+      "windows": 19,
+      "maximumCoefficientDifference": 0,
+      "rerunWindows": 10,
+      "rerunDifference": 0,
+      "nativeCSVExportPassed": true,
+      "savedResultRoundTripPassed": true
+    },
+    "interface": {
+      "passed": true,
+      "originalQtProgramRan": true,
+      "browserControlBridgePassed": true,
+      "retainedTrials": 283,
+      "conditions": 6,
+      "windows": 19,
+      "maximumCoefficientDifference": 0,
+      "nativeGraphAndHeatmapRendered": true
+    }
+  },
+  "preparationOnly": {
+    "passed": true,
+    "dataByteIdentical": true,
+    "countsByteIdentical": true,
+    "artifacts": 3,
+    "analysisRan": false
+  },
+  "build": {
+    "productionBuildPassed": true,
+    "unitTestsPassed": 6,
+    "savedArchiveSecurityTestsPassed": 3
+  }
+}
