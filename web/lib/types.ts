@@ -23,7 +23,7 @@ export type Job = {
   id: string; session: string; config: AnalysisConfig; inputs: InputFile[]; sourceJobId?: string;
   status: 'queued' | 'initializing' | 'preparing' | 'analyzing' | 'complete' | 'failed';
   stage: string; progress: number; createdAt: string; updatedAt: string;
-  sandboxId?: string; commandId?: string; phase?: 'setup' | 'run';
+  sandboxId?: string; commandId?: string; phase?: 'setup' | 'waiting-runtime' | 'run';
   artifacts: Artifact[]; result?: AnalysisResult; error?: string;
 };
 export type PublicJob = Omit<Job, 'session' | 'sandboxId' | 'commandId' | 'phase' | 'inputs'>;

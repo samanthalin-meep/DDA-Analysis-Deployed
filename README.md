@@ -12,11 +12,11 @@ The deployable Next.js application is in **`web/`**. Set the Vercel project's **
 - Private Vercel Blob stores uploads, job records, and outputs.
 - Vercel Workflows coordinates durable jobs.
 - Vercel Sandbox runs the compiled MATLAB preparation and preserved Rust pooled-analysis engine.
-- The first recording installs MATLAB Runtime and saves a clean environment snapshot; later recordings reuse it.
+- MATLAB Runtime is installed once on a Vercel Drive. Analyses mount a read-only copy of that shared dependency cache and start from a small operating-system snapshot.
 
 Connect a **private** Vercel Blob store to the project for Production, Preview, and Development. Vercel provides `BLOB_READ_WRITE_TOKEN` and/or Blob OIDC configuration. Sandbox uses the project's Vercel OIDC credentials. No MATLAB account, license file, or activation key is needed on Vercel.
 
-The project registry must contain `dda-ubuntu:24.04`, copied from the official Ubuntu Linux/amd64 image pinned at `sha256:a2d43bffc46670d7108bb3c0468c67c5557c4c92e83e1e34cbff1322ad1b94dc`. MATLAB R2025a uses Ubuntu24.04 dependencies. The workflow installs the runtime once and caches a clean snapshot before any recording is loaded.
+The project registry must contain `dda-ubuntu:24.04`, copied from the official Ubuntu Linux/amd64 image pinned at `sha256:a2d43bffc46670d7108bb3c0468c67c5557c4c92e83e1e34cbff1322ad1b94dc`. MATLAB R2025a uses Ubuntu24.04 dependencies. The workflow installs the runtime once before any recording is loaded. The shared Drive contains runtime dependencies only; each job has its own writable workspace. Concurrent first recordings wait for the initial installation. Bump the environment revision in `web/lib/runtime.ts` when changing the compiled package or installed dependencies; runner source is refreshed for each job.
 
 For local development, install Node.js22+ and pnpm11.25, then run:
 
