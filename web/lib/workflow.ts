@@ -52,7 +52,8 @@ export async function provision(session: string, id: string) {
   if (update.exitCode !== 0) throw new Error('Could not initialize the Ubuntu runtime package index.');
   const tools = await sandbox.runCommand({cmd: 'env', args: ['DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', '-y', '--no-install-recommends', 'sudo', 'python3', 'python3.12', 'python3.12-venv', 'curl', 'ca-certificates']});
   if (tools.exitCode !== 0) throw new Error('Could not install the initial analysis runtime tools.');
-  await sandbox.mkDir(ROOT);
+  const directory = await sandbox.runCommand({cmd: 'mkdir', args: ['-p', ROOT]});
+  if (directory.exitCode !== 0) throw new Error('Could not create the analysis workspace.');
   const archive = await readFile(join(process.cwd(), 'public', 'runner-source.tar.gz'));
   await sandbox.writeFiles([{path: `${ROOT}/runner.tar.gz`, content: archive}]);
   const extract = await sandbox.runCommand({cmd: 'tar', args: ['-xzf', `${ROOT}/runner.tar.gz`, '-C', ROOT]});
