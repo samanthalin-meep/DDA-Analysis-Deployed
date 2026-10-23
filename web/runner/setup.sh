@@ -18,15 +18,8 @@ curl --fail --location --retry 3 https://raw.githubusercontent.com/mathworks-ref
 # The official MathWorks dependency list contains one apt package per line.
 mapfile -t packages < <(sed 's/#.*//' /tmp/matlab-deps.txt | awk 'NF {print $1}')
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}" python3.12 python3.12-venv unzip ca-certificates curl
-python3 - <<'PY'
-import json,urllib.request,hashlib
-from pathlib import Path
-a=json.loads(Path('runtime-assets.json').read_text())
-for target,url in [('matlab-runtime.zip',a['matlab']['runtimeUrl']),('preparation.tar.gz',a['matlab']['packageUrl']),('engine.tar.gz',a['engine']['binaryUrl'])]:
-    urllib.request.urlretrieve(url,target)
-actual=hashlib.sha256(Path('preparation.tar.gz').read_bytes()).hexdigest()
-if actual != a['matlab']['packageSha256']: raise RuntimeError('Preparation archive checksum mismatch')
-PY
+stage 'Downloading the analysis environment · first recording only'
+python3 download_assets.py
 stage 'Installing MATLAB Runtime · first recording only'
 mkdir -p runtime-installer matlab-runtime bin
 unzip -q matlab-runtime.zip -d runtime-installer
