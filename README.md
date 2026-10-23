@@ -8,6 +8,8 @@ The browser runs the original DDALAB Pooled 1.2.10 Qt program. Its panels, setti
 
 The deployable Next.js application is in **`web/`**. Set the Vercel project's **Root Directory to `web`**.
 
+Commits pushed to `main` trigger a Vercel production build. A successful build updates **https://dda-analysis-deployed.vercel.app**. Automatic Git deployments are enabled in the Vercel project and in `web/vercel.json`.
+
 - Next.js provides the upload dialog and authenticated session APIs.
 - The original Qt interface runs in an isolated Vercel Sandbox and reaches the browser through authenticated noVNC. The desktop layout is preserved. Browser file dialogs and downloads replace operating-system dialogs.
 - Private Vercel Blob stores uploads, job records, outputs, and saved desktop state.
