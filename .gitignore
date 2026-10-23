@@ -1,2 +1,14 @@
 .DS_Store
 ._*
+**/node_modules/
+**/.next/
+**/.vercel/
+**/.env*
+!**/.env.example
+**/target/
+**/__pycache__/
+**/*.pyc
+**/*.tsbuildinfo
+web/runner/build/
+web/public/runner-source.tar.gz
+web/lib/runner-version.json

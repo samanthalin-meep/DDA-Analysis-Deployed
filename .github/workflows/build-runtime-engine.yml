@@ -1,0 +1,36 @@
+name: Build Linux DDA engine
+on:
+  push:
+    branches: [main]
+    paths: ['web/runner/dda-rs/**', '.github/workflows/build-runtime-engine.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: web/runner/dda-rs
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.99.1 --profile minimal
+      - name: Test the preserved engine
+        working-directory: web/runner/dda-rs
+        run: cargo +1.99.1 test --locked --lib
+      - name: Build Linux engine
+        working-directory: web/runner/dda-rs
+        run: cargo +1.99.1 build --locked --release --bin ddalab
+      - name: Package with license
+        run: |
+          mkdir -p engine
+          cp web/runner/dda-rs/target/release/ddalab engine/ddalab
+          cp web/runner/dda-rs/LICENSE engine/LICENSE
+          tar -czf ddalab-linux-x64.tar.gz -C engine .
+          sha256sum ddalab-linux-x64.tar.gz > ddalab-linux-x64.tar.gz.sha256
+      - name: Publish runtime artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view engine-v1 || gh release create engine-v1 --title "Linux DDA engine v1" --notes "Preserved pooled-input Rust engine. Built and tested on Ubuntu 24.04."
+          gh release upload engine-v1 ddalab-linux-x64.tar.gz ddalab-linux-x64.tar.gz.sha256 --clobber
