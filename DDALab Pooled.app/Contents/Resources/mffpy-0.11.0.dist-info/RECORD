@@ -1,0 +1,101 @@
+../../../bin/__pycache__/mff2json.cpython-312.pyc,,
+../../../bin/__pycache__/mff2mfz.cpython-312.pyc,,
+../../../bin/__pycache__/mffdiff.cpython-312.pyc,,
+../../../bin/mff2json.py,sha256=V9bTzgkxpVzqNfYKioCshB8odl8tsgKyaPpgMRSv3d0,2168
+../../../bin/mff2mfz.py,sha256=v8uvqYmTl34BZh3AuOlOfdF-p4DVB4SV4Aer7S2p5z8,1345
+../../../bin/mffdiff.py,sha256=wbqF4GverZTwV8_28RN5syvXcs51ecf9oC2WSS-otGY,3268
+mffpy-0.11.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+mffpy-0.11.0.dist-info/METADATA,sha256=apkkwlgOeLPmRShaup2PJhIVHraQHoGBVA9tZRPxE24,8978
+mffpy-0.11.0.dist-info/RECORD,,
+mffpy-0.11.0.dist-info/WHEEL,sha256=aeYiig01lYGDzBgS8HxWXOg3uV61G9ijOsup-k9o1sk,91
+mffpy-0.11.0.dist-info/licenses/LICENSE,sha256=SmcPcQOCsq0z70-0e4nS_-xdFUAS4C5Lt-y6FCv6mPc,514
+mffpy-0.11.0.dist-info/top_level.txt,sha256=5QzLW3tnJKtAYPE7Me8YEPVpUpxn0GHH67BlrZhiYrI,6
+mffpy/__init__.py,sha256=0HTVb9ekOPBDCjeKacqf6XcyOmkEhwAg6lJkJn0zV7A,671
+mffpy/__pycache__/__init__.cpython-312.pyc,,
+mffpy/__pycache__/bin_files.cpython-312.pyc,,
+mffpy/__pycache__/bin_writer.cpython-312.pyc,,
+mffpy/__pycache__/cached_property.cpython-312.pyc,,
+mffpy/__pycache__/devices.cpython-312.pyc,,
+mffpy/__pycache__/dict2xml.cpython-312.pyc,,
+mffpy/__pycache__/epoch.cpython-312.pyc,,
+mffpy/__pycache__/mffdir.cpython-312.pyc,,
+mffpy/__pycache__/raw_bin_files.cpython-312.pyc,,
+mffpy/__pycache__/reader.cpython-312.pyc,,
+mffpy/__pycache__/version.cpython-312.pyc,,
+mffpy/__pycache__/writer.cpython-312.pyc,,
+mffpy/__pycache__/xml_files.cpython-312.pyc,,
+mffpy/__pycache__/zipfile.cpython-312.pyc,,
+mffpy/bin_files.py,sha256=84ceENo1UhAw3FbHaM1Q6fsu9zlBW4qFigDVCutzqnU,3008
+mffpy/bin_writer.py,sha256=SBzKkT-zS6QB2UeOndCaFYwKIb2342glOJI8rWTfhjs,6997
+mffpy/cached_property.py,sha256=egFMEny2uzhH-5kORXa5ojLRNfstOp9s_MoWvclnEVw,1460
+mffpy/devices.py,sha256=sB5o96Hl5qAD69FZy2-SeYwnx2Wuf5hQ_jZYPEbKhZ0,927
+mffpy/dict2xml.py,sha256=GEpZE0zBgcBXCWTfPdpBfeDAg6bABma9F4NAXard0ww,2248
+mffpy/epoch.py,sha256=12XqPPABVdDYFXr7mbP9XEQd5fW5THUfO8i3lt9QEbs,2214
+mffpy/header_block/__init__.py,sha256=quszNE_fdrencyyjFE8twqdtEXwD0GSXA0z5d1idxzA,554
+mffpy/header_block/__pycache__/__init__.cpython-312.pyc,,
+mffpy/header_block/__pycache__/header_block.cpython-312.pyc,,
+mffpy/header_block/__pycache__/helpers.cpython-312.pyc,,
+mffpy/header_block/__pycache__/optional_header_block.cpython-312.pyc,,
+mffpy/header_block/header_block.py,sha256=oIB-Dxrf4E71y6tp4SUm3O59zlGI8mCWE9Z19yAn0aM,6069
+mffpy/header_block/helpers.py,sha256=w-kNZutH5MoYiXw9Gm2la3Movv36F0U_5rn6s4nNrQE,655
+mffpy/header_block/optional_header_block.py,sha256=EPOOpACGJnH7LzrFdSO0r0zTtN-DZbLLiDuq2C6hkd0,2445
+mffpy/mffdir.py,sha256=_b2SA910foOcrLRP0QgKHKmPBZeRmgL6Rt2WL7egF-8,6203
+mffpy/raw_bin_files.py,sha256=jMN8vs0f57EwzvjxLYFbTYdJDtCDatmdNKSRFHD5DL0,9475
+mffpy/reader.py,sha256=16b1w5ofEqECKIdouWoAX4xVuVQfV4hC3NdK_xHkYko,14333
+mffpy/resources/coordinates/Geodesic Head Web 130 1.0.xml,sha256=d0Z4lNYOnWIMqtGQZrTvjudUq8LqEI6s8wVvddLomNs,30580
+mffpy/resources/coordinates/Geodesic Head Web 280 1.0.xml,sha256=PnVEcsG8RwHwGMEz5nQSfNay8_iOKFAvrAvf-gZ3UsM,66445
+mffpy/resources/coordinates/Geodesic Sensor Net 128 2.1.xml,sha256=w3-lOpi51uagZf6EQohvid2ltqtiHhwescEGI8ErFeU,30884
+mffpy/resources/coordinates/Geodesic Sensor Net 256 2.1.xml,sha256=tZjkmNs3aHnf4dFyosJgeDsZp0ZCTQMgrjXChHS225k,60240
+mffpy/resources/coordinates/Geodesic Sensor Net 64 2.0.xml,sha256=30ue4fvOl6KAn9VsFtsMNU1vPQaRwFiV8vcpeG91LyM,16275
+mffpy/resources/coordinates/HydroCel GSN 128 1.0.xml,sha256=3cmrS3JRuRELh1Laq_rN1m6uq2wQSVZalhpsqU1DKeQ,30874
+mffpy/resources/coordinates/HydroCel GSN 256 1.0.xml,sha256=0rQpQbH9gDOn-HPkq8g2cAGJLXQKRDwF-gHX-Hucn_M,60304
+mffpy/resources/coordinates/HydroCel GSN 32 1.0.xml,sha256=INyWLcD-Mx5u_PlEZUFqzEp56DvNVHdlv6zkyPEhakQ,8925
+mffpy/resources/coordinates/HydroCel GSN 64 1.0.xml,sha256=K60GbzyxgnmNMeVPWKSTdHB5IU2Lqypl1TH403UWKws,16213
+mffpy/resources/coordinates/MicroCel GSN 100 128 1.0.xml,sha256=Uo2FCxplJYrnUIw-SjnxQVM9HzNE0up5Zk5osx84aec,30878
+mffpy/resources/coordinates/MicroCel GSN 100 256 1.0.xml,sha256=RjxmVGpLZabsHuGbe-4FnJrYMCjhOzdCPi3blWvQeC4,60308
+mffpy/resources/coordinates/MicroCel GSN 100 32 1.0.xml,sha256=tyCHI3LfvtuHRfomrFX1NERH5oehnSfqlvSgmWXD8zs,8929
+mffpy/resources/coordinates/MicroCel GSN 100 64 1.0.xml,sha256=01R4EixG2kYGguIAeSV-AmGIjmxPPHaDx3p7mCzi8Gw,16217
+mffpy/resources/coordinates/Standard 10-20 (19 ch).xml,sha256=xcbXiBMQVHiEmJbmr7UnZEhyupUyA9mQeZjZtUR5yOc,5413
+mffpy/resources/sensorLayout/Amp Sample.xml,sha256=ybw_d_jmrCZCdj4S38cNe_wJ2KqBQcT_JrzYlfTb-_I,72318
+mffpy/resources/sensorLayout/Geodesic Head Web 130 1.0.xml,sha256=r9MM4g8GAB9LUh72oxni59RYTfB9wwT9ITN22VqSSUs,29682
+mffpy/resources/sensorLayout/Geodesic Head Web 280 1.0.xml,sha256=TBbYTBAovuccPiMFevS9d1f07f93wheB_ldNCAkJhfc,63351
+mffpy/resources/sensorLayout/Geodesic Sensor Net 128 2.1.xml,sha256=YZ-38XmVWbaW2s6omIoXR9UhrQbliYPZdQKr5xTWAho,43938
+mffpy/resources/sensorLayout/Geodesic Sensor Net 256 2.1.xml,sha256=vsQ_1qva9uuKVIa7fQf8yvfIMR_h4Zc1Eru25pKvO3Y,87397
+mffpy/resources/sensorLayout/Geodesic Sensor Net 64 2.0.xml,sha256=_4hCBYdkeG5COxF3glb4ury_dagMuRiWPDoQxw-6KWk,24363
+mffpy/resources/sensorLayout/HydroCel GSN 128 1.0.xml,sha256=WrdLGMwbsWL1IFqAOS4kqQFz8DVs6k88aGW-N3C_FaE,39498
+mffpy/resources/sensorLayout/HydroCel GSN 256 1.0.xml,sha256=fuTtLUv342X3GfAU2X_XTUCOQ0RfPAltQE3cGSUt8nE,78886
+mffpy/resources/sensorLayout/HydroCel GSN 32 1.0.xml,sha256=7k8fGQx-7e4ArV_uqBRlLBXmiIw5OxALDO9mRggGRFQ,37888
+mffpy/resources/sensorLayout/HydroCel GSN 64 1.0.xml,sha256=73cV_tJSjdPxSJCYTFJltb7Zod56NP1GqOEV_pj3MXE,38206
+mffpy/resources/sensorLayout/MicroCel GSN 100 128 1.0.xml,sha256=g5FyWx_YlOnt5RlC2XCHHEOG4wpCzqb1Y32M9jBEZZI,39502
+mffpy/resources/sensorLayout/MicroCel GSN 100 256 1.0.xml,sha256=b9YNdRwbECaruijWPi68AiK481FNWry3H6uCtconrPA,78890
+mffpy/resources/sensorLayout/MicroCel GSN 100 32 1.0.xml,sha256=KC2KzA5SnDE6K_JEAamveWb2-xgUsfsn0ur0843tU6o,37892
+mffpy/resources/sensorLayout/MicroCel GSN 100 64 1.0.xml,sha256=5D6sjue10Wrjn9L9iUx61Y5tXTZkLhUYxNbM5-H6yQo,38210
+mffpy/resources/sensorLayout/Standard 10-20 (19 ch).xml,sha256=zypiTnd1v8D1-vDef0jZjCbP_xKLGh4EwUZvyGivwnA,4532
+mffpy/tests/__init__.py,sha256=YdT3g6ZviE9b6uFSegvcspinde0MSMYzGLavpWJ9XNc,501
+mffpy/tests/__pycache__/__init__.cpython-312.pyc,,
+mffpy/tests/__pycache__/conftest.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_cached_property.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_devices.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_dict2xml.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_header_block.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_mffdir.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_raw_bin_files.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_reader.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_writer.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_xml_files.cpython-312.pyc,,
+mffpy/tests/__pycache__/test_zipfile.cpython-312.pyc,,
+mffpy/tests/conftest.py,sha256=1d9U3sHfVgP1O2uwp6vkSjNrjopyZCU7Dt8dhvuzVR8,2395
+mffpy/tests/test_cached_property.py,sha256=3L1n1-lGLjRrA5fZqKb3kzk2LjRyyqOoDhBivJpSP6M,2105
+mffpy/tests/test_devices.py,sha256=i0B43wzyekkwHoEibtS2wn0tIjTL5VjqrG57uvPlOzQ,1872
+mffpy/tests/test_dict2xml.py,sha256=V0Al3EPhxwQAgFvB80VbNEvkziuwfzwtyBkSB7wtdt4,1142
+mffpy/tests/test_header_block.py,sha256=ndjBN_dCTf7xARlgDfQ_KYhz0TAagcbsYDRridBYovM,1921
+mffpy/tests/test_mffdir.py,sha256=QYFVuD7kOFvBJCjIsAEY2YBoblXDTaMXkPbOre7qBII,2200
+mffpy/tests/test_raw_bin_files.py,sha256=_OiN1GjZRMxYaG8YwK4idIyWhu3z3kS8OWleViDCRO0,3736
+mffpy/tests/test_reader.py,sha256=SrWTiTYOVibqSGJd6lQ_NpDJl5hHJW_qHvzvpreXcDU,9166
+mffpy/tests/test_writer.py,sha256=QVUO15mMH646L96--dOH2sLTgDfFgGNpcogPf6dbWPs,11504
+mffpy/tests/test_xml_files.py,sha256=op4L0xzjklrXLbSSeE4jGzURzb-t69RzaBvf9iI5e_g,21942
+mffpy/tests/test_zipfile.py,sha256=4n48_n30zeNmrBOuHXBMoAqCVnVTUiIhZvsQnJz77qo,1968
+mffpy/version.py,sha256=raMu9XA9JEjvdoTmFqcOw7qhJX24rYDP7XmS59TAO-Q,23
+mffpy/writer.py,sha256=CneWBez_vMvN9QC3e_LtAG2UIJoSqXGjCPp9gyPFRbM,5013
+mffpy/xml_files.py,sha256=aebzKPFLWlyW-R5YAx4SRsQZ7U-W3SqHgtP6v-3Rxe0,53971
+mffpy/zipfile.py,sha256=LKaDKfegm657f4a8BBHBf7NTvdnqDeeCC-1axRCHvz0,3631

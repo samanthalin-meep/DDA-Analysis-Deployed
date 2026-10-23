@@ -1,0 +1,15 @@
+PySide6==6.8.2.1
+requests<3,>=2.32.0
+urllib3<2
+numpy==1.26.4
+matplotlib==3.10.8
+scipy==1.13.1
+scikit-learn==1.5.2
+mne==1.8.0
+defusedxml<1,>=0.7
+pymatreader<1,>=0.0.32
+mffpy<1,>=0.10
+nibabel==5.3.3
+pyxdf==1.16.8
+pynwb==2.8.3
+packaging<25,>=24

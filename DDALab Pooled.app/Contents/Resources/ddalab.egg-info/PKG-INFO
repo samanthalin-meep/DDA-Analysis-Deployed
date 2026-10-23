@@ -1,0 +1,78 @@
+Metadata-Version: 2.4
+Name: ddalab
+Version: 1.2.10
+Summary: DDALAB desktop application and command-line interface
+Requires-Python: <3.13,>=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: PySide6==6.8.2.1
+Requires-Dist: requests<3,>=2.32.0
+Requires-Dist: urllib3<2
+Requires-Dist: numpy==1.26.4
+Requires-Dist: matplotlib==3.10.8
+Requires-Dist: scipy==1.13.1
+Requires-Dist: scikit-learn==1.5.2
+Requires-Dist: mne==1.8.0
+Requires-Dist: defusedxml<1,>=0.7
+Requires-Dist: pymatreader<1,>=0.0.32
+Requires-Dist: mffpy<1,>=0.10
+Requires-Dist: nibabel==5.3.3
+Requires-Dist: pyxdf==1.16.8
+Requires-Dist: pynwb==2.8.3
+Requires-Dist: packaging<25,>=24
+
+# DDALAB
+
+`ddalab` is the unified Python package for DDALAB.
+
+It ships:
+
+- the command-line interface
+- the Qt desktop application
+- the shared local runtime and dataset readers
+- the bundled `dda-rs` backend binary used for local DDA analysis
+
+## Entry Points
+
+Installing this package provides:
+
+- `ddalab`
+- `ddalab-cli`
+- `ddalab-gui`
+
+`ddalab` and `ddalab-cli` both invoke the CLI entry point. `ddalab-gui` launches the desktop application directly.
+
+## Install
+
+```bash
+cd packages/ddalab
+python -m pip install .
+```
+
+Published wheels bundle the local `dda-rs` backend, so DDA works offline without a separate network service.
+
+## CLI Examples
+
+```bash
+ddalab health
+ddalab dataset info --file data/MG100_Seizure1.edf
+ddalab dda info --json
+ddalab dda validate data/MG100_Seizure1.edf --json
+ddalab dda run data/MG100_Seizure1.edf --channels 0 1 2 --variants ST SY --end 30
+ddalab dda batch --bids-dir data/ds003029 --variants ST --continue-on-error
+```
+
+## Desktop Development
+
+```bash
+cd packages/ddalab
+./start.sh
+```
+
+The script provisions a local virtual environment, installs the unified package in editable mode, and launches the Qt application.
+
+## Smoke Test
+
+```bash
+cd packages/ddalab
+./start.sh --smoke-test
+```

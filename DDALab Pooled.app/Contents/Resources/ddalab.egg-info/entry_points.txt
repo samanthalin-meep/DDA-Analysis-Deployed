@@ -1,0 +1,4 @@
+[console_scripts]
+ddalab = ddalab_qt.__main__:main
+ddalab-cli = ddalab_qt.__main__:main
+ddalab-gui = ddalab_gui.__main__:main

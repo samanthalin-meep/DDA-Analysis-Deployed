@@ -1,0 +1,16 @@
+pyxdf-1.16.8.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+pyxdf-1.16.8.dist-info/LICENSE,sha256=cCHxoYnTVVmcj-BKj2nbOJLtl8FOU9lSmTFdeRhChco,1433
+pyxdf-1.16.8.dist-info/METADATA,sha256=4l_ZEFN_MCSg9hLbWU2vrC5mdR1XJiaCBZ1yyzlb15A,3071
+pyxdf-1.16.8.dist-info/RECORD,,
+pyxdf-1.16.8.dist-info/WHEEL,sha256=SEx_VjY_dCdOsvWsJxlL1ZaHIhdlADF6DUiu_JU1hs4,109
+pyxdf-1.16.8.dist-info/top_level.txt,sha256=YEjbKsVT_K2Yoh0-KpdHSvjJWhNoidIWRTcDFbXknM0,6
+pyxdf/__init__.py,sha256=nCEUczPqUib29PZQz8JR9VFf0OkVqGe79wN4Ejg0ohA,386
+pyxdf/__pycache__/__init__.cpython-312.pyc,,
+pyxdf/__pycache__/pyxdf.cpython-312.pyc,,
+pyxdf/examples/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+pyxdf/examples/__pycache__/__init__.cpython-312.pyc,,
+pyxdf/examples/__pycache__/playback_lsl.cpython-312.pyc,,
+pyxdf/examples/__pycache__/print_metadata.cpython-312.pyc,,
+pyxdf/examples/playback_lsl.py,sha256=nriDnuc5D6Qd_bj7_iZg3Ajs2WMOVEGP7fRSuaOA5jo,8927
+pyxdf/examples/print_metadata.py,sha256=dVAcoz3fHQdF9rOsAxdjwQYYiLSR7_Lal21882cPbSg,1483
+pyxdf/pyxdf.py,sha256=Z2sZQE_Mo-OHSMqF8xywNFNfnbo7IBYRouaa4KzNR3k,33457

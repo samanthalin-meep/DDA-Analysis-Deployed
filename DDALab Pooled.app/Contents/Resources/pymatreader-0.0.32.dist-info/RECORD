@@ -1,0 +1,14 @@
+pymatreader-0.0.32.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+pymatreader-0.0.32.dist-info/LICENSE,sha256=Wp5wTcO2FyB6J3lcvnwtCLDuIxN8EXTuE1v8crCSPc8,1312
+pymatreader-0.0.32.dist-info/METADATA,sha256=URxB18IYgpqJ-28sMymA2hp54jJTvAzcw8BQeSibBb0,1400
+pymatreader-0.0.32.dist-info/RECORD,,
+pymatreader-0.0.32.dist-info/WHEEL,sha256=pkctZYzUS4AYVn6dJ-7367OJZivF2e8RA9b_ZBjif18,92
+pymatreader-0.0.32.dist-info/top_level.txt,sha256=Q2pJTsoB_du49SdPF-NCrpas8oWKRlREM0j706FcWNI,12
+pymatreader/__init__.py,sha256=lbvY5PltFP0jAHAu3RIs2urwVVZ_P0-5BPHrDDUzY1I,1582
+pymatreader/__pycache__/__init__.cpython-312.pyc,,
+pymatreader/__pycache__/_version.cpython-312.pyc,,
+pymatreader/__pycache__/pymatreader.cpython-312.pyc,,
+pymatreader/__pycache__/utils.cpython-312.pyc,,
+pymatreader/_version.py,sha256=Z5XpDokIusOT7OYxgxCfyGGaGOwPzqU1B7QyYaGIM1c,23
+pymatreader/pymatreader.py,sha256=C0ub5xszXMw30Iv17FU3jocclpU78hpdnp4AHL3SYsA,4236
+pymatreader/utils.py,sha256=Fovc_vIoGjMenmmalE7zQrZH_hXAaLcFhO2XX7i9b54,9203
