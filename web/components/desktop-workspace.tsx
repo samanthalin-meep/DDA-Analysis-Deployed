@@ -49,7 +49,7 @@ export default function DesktopWorkspace(){
   },[]);
   const reopen=useCallback(async()=>{
     if(opening.current)return;opening.current=true;setError('');setConnected(false);setStatus('Start DDALab.');
-    try{const response=await initialize(true);setDesktop(response.desktop);}
+    try{const response=await initialize(true);setDesktop(response.desktop);setPendingId(response.pending);}
     catch(error){setError(errorText(error));}
     finally{opening.current=false;}
   },[initialize]);
@@ -70,7 +70,7 @@ export default function DesktopWorkspace(){
         setDesktop(response.desktop);
         if(response.desktop.status==='stopped')await reopen();
       }catch(error){if(active){setError(errorText(error));clearInterval(timer);}}
-    },4000);
+    },10000);
     return()=>{active=false;clearInterval(timer);};
   },[desktop?.id,desktop?.status,reopen]);
   useEffect(()=>{
@@ -113,10 +113,11 @@ export default function DesktopWorkspace(){
         if(!active)return;
         failures=0;
         setJob(response.job);
+        if(response.job.status==='complete')clearInterval(timer);
         if(response.job.status==='failed'){setError(response.job.error||'Cannot prepare the data.');window.localStorage.removeItem(PENDING);setPendingId(null);}
       }catch(error){if(active){setError(errorText(error));if(++failures>=3){clearInterval(timer);setPendingId(null);}}}
     };
-    void poll();const timer=setInterval(poll,4000);return()=>{active=false;clearInterval(timer);};
+    const timer=setInterval(poll,15000);void poll();return()=>{active=false;clearInterval(timer);};
   },[pendingId]);
   useEffect(()=>{
     if(job?.status!=='complete'||desktop?.status!=='ready'||importing.current)return;

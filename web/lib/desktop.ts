@@ -11,7 +11,7 @@ export type DesktopSession = {
   id: string; session: string; status: 'starting'|'ready'|'stopped'|'failed';
   stage: string; createdAt: string; expiresAt: string; parentOrigin: string;
   width: number; height: number; token: string; sandboxName?: string; url?: string;
-  phase?: 'setup'|'program'; commandId?: string; checkpointHash?: string; error?: string;
+  phase?: 'setup'|'program'; commandId?: string; checkpointHash?: string; restoreState?:boolean; error?: string;
 };
 export type PublicDesktop = Pick<DesktopSession,'id'|'status'|'stage'|'expiresAt'|'error'> & {viewerUrl?: string; viewerToken?: string};
 const currentPath = (session:string) => `sessions/${session}/desktop/current.json`;
@@ -21,7 +21,7 @@ export const saveDesktop = (desktop:DesktopSession) => writeJson(currentPath(des
 export const publicDesktop = (desktop:DesktopSession):PublicDesktop => ({id:desktop.id,status:desktop.status,stage:desktop.stage,expiresAt:desktop.expiresAt,error:desktop.error,viewerUrl:desktop.status==='ready'?desktop.url:undefined,viewerToken:desktop.status==='ready'?desktop.token:undefined});
 export async function desktopSandbox(desktop:DesktopSession) {
   if(!desktop.sandboxName)throw Error('DDALab did not start.');
-  return Sandbox.get({name:desktop.sandboxName});
+  return Sandbox.get({name:desktop.sandboxName,resume:false});
 }
 export async function unpackDesktop(sandbox:Sandbox) {
   const directory = await sandbox.runCommand({cmd:'mkdir',args:['-p',DESKTOP_ROOT]});
@@ -34,9 +34,9 @@ export async function startDesktop(desktop:DesktopSession,sandbox:Sandbox) {
   desktop.sandboxName=sandbox.name;
   await saveDesktop(desktop);
   await unpackDesktop(sandbox);
-  const previous=await get(checkpointPath(desktop.session),{access:'private',useCache:false});
+  const previous=desktop.restoreState&&!desktop.checkpointHash?await get(checkpointPath(desktop.session),{access:'private',useCache:false}):null;
   // Signed URLs grant access to this user's saved state only.
-  const restoreUrl=previous?.statusCode===200?await signedRead(checkpointPath(desktop.session),15*60*1000):undefined;
+  const restoreUrl=desktop.checkpointHash||previous?.statusCode===200?await signedRead(checkpointPath(desktop.session),15*60*1000):undefined;
   const config={token:desktop.token,parentOrigin:desktop.parentOrigin,width:desktop.width,height:desktop.height,restoreUrl};
   await sandbox.writeFiles([{path:`${DESKTOP_ROOT}/session-config.json`,content:Buffer.from(JSON.stringify(config))}]);
   const restore=await sandbox.runCommand({cmd:`${DESKTOP_ROOT}/.venv/bin/python`,args:[`${DESKTOP_ROOT}/restore_state.py`]});
@@ -55,9 +55,13 @@ export async function checkpointDesktop(desktop:DesktopSession) {
   desktop.checkpointHash=response.headers.get('X-DDA-State')||undefined;
 }
 export async function closeDesktop(desktop:DesktopSession) {
+  if(!desktop.sandboxName)return;
+  const sandbox=await desktopSandbox(desktop);
+  // An expired environment restores from its last completed checkpoint.
+  if(!['pending','running','snapshotting'].includes(sandbox.status))return;
   if(desktop.status==='ready')await checkpointDesktop(desktop);
   else{try{await checkpointDesktop(desktop);}catch{}}
-  if(desktop.sandboxName){try{await(await desktopSandbox(desktop)).stop();}catch{}}
+  await sandbox.stop();
 }
 export function newDesktop(session:string,parentOrigin:string,width:number,height:number):DesktopSession {
   const now=Date.now();

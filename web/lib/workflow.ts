@@ -20,7 +20,7 @@ async function restoreRuntime(cached: RuntimeCache) {
 }
 async function sandboxFor(job: Job) {
   if (!job.sandboxId) throw new Error('Processing environment was not created.');
-  return Sandbox.get({name: job.sandboxId});
+    return Sandbox.get({name: job.sandboxId,resume:false});
 }
 async function sandboxJson<T>(sandbox: Sandbox, path: string): Promise<T | null> {
   const data = await sandbox.readFileToBuffer({path});
@@ -126,9 +126,10 @@ export async function advance(session: string, id: string): Promise<boolean> {
   const state = await sandboxJson<RunnerStatus>(sandbox, `${ROOT}/work/status.json`);
   if (!state) return false;
   if (state.state === 'failed') throw new Error(state.error || 'The recording could not be processed.');
+  const before=JSON.stringify(job);
   job.stage = state.stage; job.progress = Math.max(10, Math.min(99, state.progress));
   job.status = state.progress >= 65 ? 'analyzing' : 'preparing';
-  if (state.state !== 'complete') {await saveJob(job); return false;}
+  if (state.state !== 'complete') {if(JSON.stringify(job)!==before)await saveJob(job); return false;}
   const artifacts: Artifact[] = [];
   for (const file of state.artifacts || []) {
     if (!/^[A-Za-z0-9_.-]{1,180}$/.test(file.name)) throw new Error('An output filename was invalid.');
@@ -157,7 +158,7 @@ export async function analysisWorkflow(session: string, id: string) {
   'use workflow';
   try {
     await provision(session, id);
-    while (!(await advance(session, id))) await sleep('10s');
+    while (!(await advance(session, id))) await sleep('20s');
   } catch (error) {
     await recordFailure(session, id, error instanceof Error ? error.message : String(error));
   }

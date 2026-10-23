@@ -77,7 +77,16 @@
   },
   "build": {
     "productionBuildPassed": true,
-    "unitTestsPassed": 6,
+    "unitTestsPassed": 13,
     "savedArchiveSecurityTestsPassed": 3
+  },
+  "metadataCache": {
+    "unitVerificationPassed": true,
+    "simulatedStatusRequests": 900,
+    "originReads": 1,
+    "sharedAcrossFunctionInstances": true,
+    "updatesAfterDurableWrites": true,
+    "evictionFallsBackToBlob": true,
+    "blockedStoreRetrySeconds": 60
   }
 }

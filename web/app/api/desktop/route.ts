@@ -16,6 +16,7 @@ export async function POST(request:Request){
     if(previous&&!body.restart&&['starting','ready'].includes(previous.status)&&Date.parse(previous.expiresAt)>Date.now()+30000)return Response.json({desktop:publicDesktop(previous)});
     if(previous)await closeDesktop(previous);
     const desktop=newDesktop(session,requestOrigin(request),Number(body.width),Number(body.height));
+    desktop.checkpointHash=previous?.checkpointHash;desktop.restoreState=!!previous;
     await saveDesktop(desktop);await start(desktopWorkflow,[session,desktop.id]);
     return Response.json({desktop:publicDesktop(desktop)},{status:202});
   }catch(error){return Response.json({error:error instanceof Error?error.message:'Cannot open DDALab.'},{status:400});}
