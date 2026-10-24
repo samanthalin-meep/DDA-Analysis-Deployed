@@ -23,7 +23,7 @@ jobs:
           lfs: false
           sparse-checkout: |
             pages
-            web/runner/dda-rs
+            vendor/dda-rs
       - uses: actions/setup-node@v4
         with:
           node-version: 22

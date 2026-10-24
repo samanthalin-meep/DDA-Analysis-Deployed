@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const source = resolve(root, "../web/runner/dda-rs/src");
+const source = resolve(root, "../vendor/dda-rs/src");
 const vendor = resolve(root, "wasm/src/vendor");
 await mkdir(vendor, { recursive: true });
 for (const name of ["engine.rs", "types.rs", "error.rs", "engine"]) {

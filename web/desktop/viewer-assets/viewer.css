@@ -1,2 +1,0 @@
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#11161d;color:#eef2f6;font-family:Arial,sans-serif}#program{width:100%;height:100%}#message{position:fixed;bottom:12px;left:12px;font-size:13px;background:#17202a;border-radius:5px;padding:0;z-index:6}#message:not(:empty){padding:10px 14px}#controls{position:fixed;inset:0;pointer-events:none}#controls>*{position:absolute;pointer-events:auto;opacity:0;padding:0;margin:0;border:0;cursor:pointer}
-#controls>input,#controls>select,#controls>[role=tab]{pointer-events:none}

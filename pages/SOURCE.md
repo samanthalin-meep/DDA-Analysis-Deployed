@@ -1,6 +1,6 @@
 # Source provenance
 
-The original MATLAB recipe, scientific dependencies, desktop app snapshot, and engine sources are retained at the repository root and in `web/`. The GitHub Pages artifact contains only the browser app, required scientific runtime, coordinates, and notices.
+The original MATLAB recipe, scientific dependencies, and desktop app snapshot are retained at the repository root. The engine source is in `vendor/dda-rs`; the desktop reference source is in `reference/desktop`. The GitHub Pages artifact contains only the browser app, required scientific runtime, coordinates, and notices.
 
 ## Numerical sources
 
@@ -16,16 +16,16 @@ The original MATLAB recipe, scientific dependencies, desktop app snapshot, and e
 - `programs/erplab12.20/pop_functions/pop_artextval.m`: inclusive ±4.5 threshold on globally normalized single-precision samples, all channels.
 - HydroCel coordinates from `GSN-HydroCel-129.sfp`; `Cz` is renamed E129.
 
-`python/workspace.py` follows the original desktop loader's trial-column grouping and the FastICA settings in `web/desktop/vendor/ddalab_qt/backend/api.py`. Scientific library versions are pinned in `runtime-manifest.json` and the Pyodide lock file.
+`python/workspace.py` follows the original desktop loader's trial-column grouping and the FastICA settings in `reference/desktop/ddalab_qt/backend/api.py`. Scientific library versions are pinned in `runtime-manifest.json` and the Pyodide lock file.
 
-`scripts/engine.mjs` copies the original MIT-licensed Rust numerical sources from `web/runner/dda-rs`. It substitutes a browser monotonic clock and initializes the progress timer without subtracting one second, which could underflow in a newly created worker. Numerical algorithms are unchanged. Rayon uses its documented single-thread fallback. The wrapper only accepts a request, labels, and an f64 matrix, and returns the original result.
+`scripts/engine.mjs` copies the original MIT-licensed Rust numerical sources from `vendor/dda-rs`. It substitutes a browser monotonic clock and initializes the progress timer without subtracting one second, which could underflow in a newly created worker. Numerical algorithms are unchanged. Rayon uses its documented single-thread fallback. The wrapper only accepts a request, labels, and an f64 matrix, and returns the original result.
 
 ## Interface
 
-Layout, colors, control names, DDA defaults, plot axes, condition grouping, and file/session flow follow DDALAB Pooled 1.2.10 and `web/desktop/vendor/ddalab_qt`. The web implementation is new React/HTML/CSS code, with browser file pickers, local downloads, and IndexedDB replacing desktop filesystem/database access. The supplied TTF files contain saved HTML, so the web font stack uses the same Helvetica Neue fallback observed in the native application.
+Layout, colors, control names, DDA defaults, plot axes, condition grouping, and file/session flow follow DDALAB Pooled 1.2.10 and `reference/desktop/ddalab_qt`. The web implementation is new React/HTML/CSS code, with browser file pickers, local downloads, and IndexedDB replacing desktop filesystem/database access. The supplied TTF files contain saved HTML, so the web font stack uses the same Helvetica Neue fallback observed in the native application.
 
 Technical names retained in concise instructions include EDF, TXT, CSV, EEG, HydroCel, E1–E129, Status, DDA, CT, ST, CD, DE, SY, ICA, MODEL, tau, epoch, baseline, artifact, probability, interpolation, and global SD. These are scientific labels, not claims of ASD-STE100 dictionary certification.
 
 ## Notices
 
-Upstream licenses and individual source-file copyright notices remain authoritative. Copies are supplied in `public/licenses/`. The original Qt source's supplied license status is preserved; no new license is assigned to that source. Scientific wheels contain their own upstream notices. No MATLAB Runtime, activation material, university license, Vercel credential, recording, or user session is included in the deployed artifact.
+Upstream licenses and individual source-file copyright notices remain authoritative. Copies are supplied in `public/licenses/`. The original Qt source's supplied license status is preserved; no new license is assigned to that source. Scientific wheels contain their own upstream notices. No MATLAB Runtime, activation material, university license, credential, recording, or user session is included in the deployed artifact.

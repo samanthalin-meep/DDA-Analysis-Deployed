@@ -18,7 +18,7 @@ Prepared CSV files can also be opened directly. A session contains its prepared 
 ## Implementation
 
 - React interface with the original desktop colors, layout, tab structure, defaults, and graph semantics.
-- Preserved `dda-rs` 0.2.0 engine, compiled to WebAssembly. Numerical source is copied from `web/runner/dda-rs` during the build; only progress-clock plumbing changes.
+- Preserved `dda-rs` 0.2.0 engine, compiled to WebAssembly. Numerical source is copied from `vendor/dda-rs` at the repository root during the build; only progress-clock plumbing changes.
 - NumPy/SciPy preparation port in `python/preparation.py`, derived from the original `DDA_prep.m` and its exact EEGLAB/ERPLAB callees.
 - A dedicated browser Web Worker runs calculations without blocking interface input. This is part of the website and runs on the visitor's device.
 - Pinned, self-hosted Pyodide 0.27.7 runtime and scientific packages. Downloads are checked against SHA-256 hashes at build time.
@@ -29,7 +29,7 @@ The browser edition supports the recording format checked by the original prepar
 
 This is a browser rebuild of the core workflow. Native operating-system dialogs, the Qt process itself, other desktop recording formats, streaming, remote compute integrations, and desktop-specific export/script options are not included. Connectivity currently displays the real variant rows as a heatmap; it does not recreate the native network-motif animation. Imported desktop `.ddalab` files can display their saved results; reopening their original disk paths requires selecting the source CSV. Browser sessions include prepared CSV data for transfer.
 
-Use a desktop browser with enough memory for raw recording preparation. The first operation loads approximately 41 MB of cached scientific tools. Large recordings use local CPU and RAM. There are no Vercel Blob operations or paid server jobs.
+Use a desktop browser with enough memory for raw recording preparation. The first operation loads approximately 41 MB of cached scientific tools. Large recordings use local CPU and RAM.
 
 ## Validation
 
