@@ -5,7 +5,7 @@
 The free browser app runs on GitHub Pages. Each push to `main` builds and deploys the website with GitHub Actions.
 
 1. Select **Upload recording**. Select the EDF, acquisition TXT, and conditions CSV from one recording.
-2. Select electrodes and conditions. Select **Run preparation**.
+2. Enter a recording ID. Select electrodes and conditions. Select **Run preparation**.
 3. Set the trials and DDA settings on the same page. Select **Run DDA**.
 4. View the results. Download data, plots, or a `.ddalab` session.
 

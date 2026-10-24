@@ -55,6 +55,7 @@ jobs:
           pnpm run check
           pnpm run build
           node tests/verify-engine.mjs
+          node tests/verify-recording-input.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

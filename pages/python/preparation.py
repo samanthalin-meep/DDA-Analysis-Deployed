@@ -141,9 +141,11 @@ def interpolate(data, bad, coordinates, progress):
 
 
 def prepare(edf_path, log_text, csv_text, coordinates, electrodes=None, conditions=None,
-            average=False, recording='Recording', progress=lambda *x: None, checkpoint=None):
-    electrodes = electrodes or ['E129']; conditions = conditions or CONDITIONS[:6]
+            average=False, recording='', progress=lambda *x: None, checkpoint=None):
+    require(recording, 'Enter a recording ID.')
     require(re.fullmatch(r'[A-Za-z0-9_]+',recording), 'Use letters, numbers and underscores in the recording ID.')
+    require(electrodes, 'Select at least one electrode.')
+    require(conditions, 'Select at least one condition.')
     require(electrodes and len(set(electrodes)) == len(electrodes) and all(re.fullmatch(r'E(?:[1-9]|[1-9][0-9]|1[0-2][0-9])',e) for e in electrodes), 'Select unique electrodes E1–E129.')
     require(conditions and len(set(conditions)) == len(conditions) and all(c in CONDITIONS for c in conditions), 'Select unique conditions.')
     events, labels, duration = read_events(log_text,csv_text)

@@ -13,6 +13,7 @@ import { download, save, saved } from "./storage";
 import "./style.css";
 import { makeSession, type Source } from "./session";
 import { RecordingSteps, type AnalysisStep } from "./recording-steps";
+import { readConditions, readElectrodes } from "./recording-input";
 
 type Note = { time: string; text: string };
 type Ica = {
@@ -29,8 +30,12 @@ type Ica = {
     power: number[];
   }[];
 };
-const conditions = ["control", "exp1", "exp2", "exp3", "exp4", "exp5"];
-const electrodes = Array.from({ length: 129 }, (_, i) => `E${i + 1}`);
+type FileOptions = { choices: string[]; reading: boolean; error: string };
+const emptyOptions = (): FileOptions => ({
+  choices: [],
+  reading: false,
+  error: "",
+});
 const nums = (s: string) =>
   s
     .split(/[,\s]+/)
@@ -168,10 +173,17 @@ function App() {
       txt?: File;
       csv?: File;
     }>({}),
-    [recording, setRecording] = useState("I1_R3"),
-    [electrodeSelection, setElectrodeSelection] = useState(["E129"]),
-    [conditionSelection, setConditionSelection] = useState(conditions),
+    [recording, setRecording] = useState(""),
+    [electrodeSelection, setElectrodeSelection] = useState<string[]>([]),
+    [conditionSelection, setConditionSelection] = useState<string[]>([]),
     [average, setAverage] = useState(false);
+  const [recordingOptions, setRecordingOptions] = useState({
+    edf: emptyOptions(),
+    csv: emptyOptions(),
+  });
+  const recordingInputVersion = useRef({ edf: 0, csv: 0 });
+  const electrodes = recordingOptions.edf.choices,
+    conditions = recordingOptions.csv.choices;
   const [busy, setBusy] = useState(false),
     [status, setStatus] = useState("Ready"),
     [progress, setProgress] = useState(0),
@@ -487,12 +499,35 @@ function App() {
     }
     await persist();
   }
-  function pickRecording(key: "edf" | "txt" | "csv", file?: File) {
+  async function pickRecording(key: "edf" | "txt" | "csv", file?: File) {
     setUploadFiles((s) => ({ ...s, [key]: file }));
-    if (key === "edf" && file)
-      setRecording(
-        file.name.replace(/\.edf$/i, "").replace(/[^A-Za-z0-9_]/g, "_"),
-      );
+    setError("");
+    if (key === "txt") return;
+    const version = ++recordingInputVersion.current[key];
+    if (key === "edf") setElectrodeSelection([]);
+    else setConditionSelection([]);
+    setRecordingOptions((s) => ({
+      ...s,
+      [key]: { ...emptyOptions(), reading: !!file },
+    }));
+    if (!file) return;
+    try {
+      const choices =
+        key === "edf"
+          ? await readElectrodes(file)
+          : readConditions(await file.text());
+      if (recordingInputVersion.current[key] !== version) return;
+      setRecordingOptions((s) => ({
+        ...s,
+        [key]: { choices, reading: false, error: "" },
+      }));
+    } catch (e) {
+      if (recordingInputVersion.current[key] !== version) return;
+      setRecordingOptions((s) => ({
+        ...s,
+        [key]: { ...emptyOptions(), error: errText(e) },
+      }));
+    }
   }
   function pickFolder(list: FileList | null) {
     if (!list) return;
@@ -512,6 +547,16 @@ function App() {
     e.preventDefault();
     const chosen = uploadFiles;
     if (!chosen.edf || !chosen.txt || !chosen.csv) return;
+    if (
+      !recording ||
+      !electrodeSelection.length ||
+      !conditionSelection.length ||
+      recordingOptions.edf.reading ||
+      recordingOptions.csv.reading ||
+      recordingOptions.edf.error ||
+      recordingOptions.csv.error
+    )
+      return;
     await task("Prepare recording", async () => {
       const [edf, txt, csv] = await Promise.all([
         chosen.edf!.arrayBuffer(),
@@ -545,7 +590,9 @@ function App() {
       }
       await persist();
       setUpload(false);
-      setUploadFiles({});
+      for (const key of ["edf", "txt", "csv"] as const) void pickRecording(key);
+      setRecording("");
+      setAverage(false);
       setResultId("");
       openAnalysis("settings");
       notify(
@@ -2343,25 +2390,26 @@ function App() {
                 <input
                   required
                   pattern="[A-Za-z0-9_]+"
+                  autoComplete="off"
                   value={recording}
                   disabled={busy}
                   onChange={(e) => setRecording(e.target.value)}
                 />
               </label>
               <div className="upload-groups">
-                <fieldset>
+                <fieldset aria-busy={recordingOptions.edf.reading}>
                   <legend>Electrodes</legend>
                   <div className="toolbar">
                     <button
                       type="button"
-                      disabled={busy}
+                      disabled={busy || !electrodes.length}
                       onClick={() => setElectrodeSelection(electrodes)}
                     >
                       Select all
                     </button>
                     <button
                       type="button"
-                      disabled={busy}
+                      disabled={busy || !electrodeSelection.length}
                       onClick={() => setElectrodeSelection([])}
                     >
                       Clear
@@ -2370,6 +2418,18 @@ function App() {
                       {electrodeSelection.length} selected
                     </span>
                   </div>
+                  {!electrodes.length && (
+                    <p
+                      role={recordingOptions.edf.error ? "alert" : "status"}
+                      className={
+                        recordingOptions.edf.error ? "error-text" : "muted"
+                      }
+                    >
+                      {recordingOptions.edf.reading
+                        ? "Read EDF header…"
+                        : recordingOptions.edf.error || "Select an EDF file."}
+                    </p>
+                  )}
                   <div className="electrode-grid">
                     {electrodes.map((name) => (
                       <label key={name}>
@@ -2393,8 +2453,39 @@ function App() {
                     ))}
                   </div>
                 </fieldset>
-                <fieldset>
+                <fieldset aria-busy={recordingOptions.csv.reading}>
                   <legend>Conditions</legend>
+                  <div className="toolbar">
+                    <button
+                      type="button"
+                      disabled={busy || !conditions.length}
+                      onClick={() => setConditionSelection(conditions)}
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !conditionSelection.length}
+                      onClick={() => setConditionSelection([])}
+                    >
+                      Clear
+                    </button>
+                    <span className="muted">
+                      {conditionSelection.length} selected
+                    </span>
+                  </div>
+                  {!conditions.length && (
+                    <p
+                      role={recordingOptions.csv.error ? "alert" : "status"}
+                      className={
+                        recordingOptions.csv.error ? "error-text" : "muted"
+                      }
+                    >
+                      {recordingOptions.csv.reading
+                        ? "Read conditions…"
+                        : recordingOptions.csv.error || "Select a conditions CSV."}
+                    </p>
+                  )}
                   {conditions.map((name) => (
                     <label className="check" key={name}>
                       <input
@@ -2475,6 +2566,11 @@ function App() {
                   className="primary"
                   disabled={
                     busy ||
+                    !recording ||
+                    recordingOptions.edf.reading ||
+                    recordingOptions.csv.reading ||
+                    !!recordingOptions.edf.error ||
+                    !!recordingOptions.csv.error ||
                     !electrodeSelection.length ||
                     !conditionSelection.length ||
                     !uploadFiles.edf ||
