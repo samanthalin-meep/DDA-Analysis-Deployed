@@ -38,18 +38,22 @@ jobs:
         with:
           workspaces: pages/wasm
       - name: Install WebAssembly bindings
-        run: cargo install wasm-bindgen-cli --version 0.2.104 --locked
+        run: |
+          curl --fail --location --retry 3 https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.104/wasm-bindgen-0.2.104-x86_64-unknown-linux-musl.tar.gz --output "$RUNNER_TEMP/wasm-bindgen.tar.gz"
+          echo "9553740907c2c1008f9a44bb00ed1f5b39ffc55d9d331581b5aebc891a4b772f  $RUNNER_TEMP/wasm-bindgen.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/wasm-bindgen.tar.gz" -C "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/wasm-bindgen-0.2.104-x86_64-unknown-linux-musl/wasm-bindgen" "$HOME/.cargo/bin/wasm-bindgen"
       - name: Build original DDA engine
         working-directory: pages
-        run: pnpm wasm
+        run: pnpm run wasm
       - name: Get verified browser Python runtime
         working-directory: pages
-        run: pnpm runtime
+        run: pnpm run runtime
       - name: Check and build
         working-directory: pages
         run: |
-          pnpm check
-          pnpm build
+          pnpm run check
+          pnpm run build
           node tests/verify-engine.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

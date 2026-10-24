@@ -53,7 +53,7 @@ Install Node.js 22+, pnpm 11.25, Rust 1.99.1 with `wasm32-unknown-unknown`, and 
 cd pages
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm wasm
-pnpm runtime
+pnpm run runtime
 pnpm check
 pnpm build
 node tests/verify-engine.mjs

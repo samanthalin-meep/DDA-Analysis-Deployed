@@ -32,7 +32,9 @@ def register(name, matrix, time, columns, counts=None, preparation=None):
     require(len(time)>1 and np.isfinite(matrix).all() and np.isfinite(time).all(), 'Use finite voltage samples.')
     dt=np.diff(time); require(np.all(dt>0) and np.max(abs(dt-np.median(dt)))<max(abs(np.median(dt))*1e-6,1e-10), 'Use a uniform increasing time column.')
     require(len(set(columns))==len(columns),'The channel names must be unique.')
-    rate=1/float(np.median(dt)); did=uuid.uuid4().hex
+    rate=1/float(np.median(dt))
+    if abs(rate-round(rate,8)) < max(1,abs(rate))*1e-10: rate=round(rate,8)
+    did=uuid.uuid4().hex
     groups=groups_for(columns)
     if groups:
         require(len({g['electrode'] for g in groups})==1, 'Open one electrode or electrode average per trial file.')
@@ -84,6 +86,10 @@ def analysis_spec(did,config_json):
     indices=cfg['indices'];require(indices and len(set(indices))==len(indices),'Select channels or trials.')
     require(all(isinstance(i,int) and 0<=i<len(d['columns']) for i in indices),'Invalid channel selection.')
     require(cfg['variants'],'Select an analysis variant.')
+    if 'CT' in cfg['variants'] and not cfg.get('pairs'):
+        require(cfg['variants']==['CT'],'Run pooled CT separately from other variants.')
+    if 'SY' in cfg['variants']:
+        require(len(indices)%2==0,'SY requires an even number of selected channels for adjacent pairs.')
     start=max(0,int(math.floor(float(cfg.get('start',0))*d['rate']+1e-6)))
     end=min(d['rows'],int(math.floor(float(cfg.get('end',d['duration']))*d['rate']+1e-6))+1)
     require(end>start,'The end time must follow the start time.')

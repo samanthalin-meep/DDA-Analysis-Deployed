@@ -26,5 +26,6 @@
     "independentCTWindows": 34,
     "independentCTMaximumDifference": 1.7208456881689926e-15
   },
+  "originalDesktopSessionParserAndCSVExporterPassed": true,
   "remainingBrowserChecks": "Local preview browser access was declined. Later three-file chooser, session reload/round-trip, and PNG download checks were not completed through the browser."
 }

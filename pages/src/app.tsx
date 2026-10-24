@@ -288,6 +288,7 @@ function App() {
   }
   function selectFile(d: Dataset) {
     setActive(d.id);
+    setResultId(results.find((r) => r.file_name === d.name)?.id || "");
     setConfig((c) => ({
       ...c,
       start: 0,
@@ -347,6 +348,10 @@ function App() {
             await addSource(source);
           }
           persistSources.current = storedFiles;
+          const restoredResult = storedResults?.find(
+            (r) => r.file_name === storedFiles.at(-1)?.name,
+          );
+          if (restoredResult) setResultId(restoredResult.id);
           setStatus("Ready");
           setBusy(false);
         }
@@ -605,9 +610,23 @@ function App() {
   async function importSnapshot(text: string) {
     const p = JSON.parse(text);
     if (p.browser?.version === 1) {
-      if (p.browser.config) setConfig(p.browser.config);
       if (p.browser.annotations) setAnnotations(p.browser.annotations);
-      for (const source of p.browser.files || []) await addSource(source);
+      const restoredFiles: Dataset[] = [];
+      for (const source of p.browser.files || [])
+        restoredFiles.push(await addSource(source));
+      const restoredActive = restoredFiles.find(
+        (d) => d.name === p.activeFilePath,
+      );
+      if (restoredActive) selectFile(restoredActive);
+      if (p.browser.config) {
+        setConfig({ ...defaultConfig, ...p.browser.config });
+        setPairText(
+          (p.browser.config.pairs || [])
+            .map((pair: number[]) => pair.map((i) => i + 1).join(","))
+            .join("; "),
+        );
+      }
+      setExpert(Boolean(p.ddaConfig?.expertMode));
       if (p.browser.result) {
         const r = p.browser.result as Result;
         setResults((old) => [r, ...old.filter((v) => v.id !== r.id)]);
@@ -1127,9 +1146,13 @@ function App() {
                           />
                           Enable advanced DDA controls
                         </label>
-                        <p className="equation">
-                          ẋ = a₁x(t − τ₁) + a₂x(t − τ₂) + a₃x⁴(t − τ₁)
-                        </p>
+                        {config.terms.join(",") === "1,2,10" &&
+                          config.order === 4 &&
+                          config.nrTau === 2 && (
+                            <p className="equation">
+                              ẋ = a₁x(t − τ₁) + a₂x(t − τ₂) + a₃x⁴(t − τ₁)
+                            </p>
+                          )}
                         {expert && (
                           <>
                             <label className="field">
