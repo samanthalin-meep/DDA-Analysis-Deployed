@@ -1,5 +1,6 @@
 """Local browser dataset access, selection, and ICA. No network operations."""
 import csv
+import base64
 import io
 import json
 import math
@@ -24,9 +25,23 @@ def groups_for(columns, selected=None):
     return [{'electrode':e,'condition':c,'indices':v} for (e,c),v in groups.items()]
 
 def metadata(d):
-    return {k:d[k] for k in ('id','name','columns','rows','rate','duration','start','groups','counts','preparation')}
+    return {k:d[k] for k in ('id','name','columns','rows','rate','duration','start','groups','counts','preparation','electrodes')}
 
-def register(name, matrix, time, columns, counts=None, preparation=None):
+def attach_electrodes(d, electrodes, values):
+    expected = 'AVG_'+'_'.join(electrodes)
+    require(electrodes and len(set(electrodes)) == len(electrodes) and
+            d['groups'] and all(g['electrode'] == expected for g in d['groups']),
+            'The individual electrodes do not match the averaged file.')
+    values = np.ascontiguousarray(values, dtype=np.float32)
+    require(values.shape == (len(electrodes),d['rows'],len(d['columns'])) and np.isfinite(values).all(),
+            'The individual electrode data has invalid dimensions or samples.')
+    require(np.allclose(values.astype(float).mean(axis=0), d['matrix'], rtol=1e-10, atol=1e-12),
+            'The individual electrodes do not reproduce the saved average.')
+    d['electrodes'] = list(electrodes)
+    d['electrode_data'] = values
+
+
+def register(name, matrix, time, columns, counts=None, preparation=None, electrodes=None, electrode_data=None):
     matrix=np.ascontiguousarray(matrix,dtype=np.float64); time=np.array(time,dtype=float)
     require(matrix.ndim==2 and len(time)==len(matrix) and matrix.shape[1]==len(columns), 'Invalid dataset dimensions.')
     require(len(time)>1 and np.isfinite(matrix).all() and np.isfinite(time).all(), 'Use finite voltage samples.')
@@ -40,7 +55,9 @@ def register(name, matrix, time, columns, counts=None, preparation=None):
         require(len({g['electrode'] for g in groups})==1, 'Open one electrode or electrode average per trial file.')
     d={'id':did,'name':name,'matrix':matrix,'time':time,'columns':columns,'rows':len(matrix),'rate':rate,
        'duration':float(time[-1]-time[0]+1/rate),'start':float(time[0]),'groups':groups,
-       'counts':counts or [],'preparation':preparation}
+       'counts':counts or [],'preparation':preparation,'electrodes':[]}
+    if electrode_data is not None:
+        attach_electrodes(d, electrodes or [], electrode_data)
     datasets[did]=d
     return metadata(d)
 
@@ -57,15 +74,38 @@ def open_csv(name,text,rate=250,metadata_json='{}'):
         time=values[:,0];values=values[:,1:];columns=header[1:]
     else: time=np.arange(len(values))/float(rate);columns=header
     meta=json.loads(metadata_json)
-    return json.dumps(register(name,values,time,columns,meta.get('counts'),meta.get('preparation')))
+    info=register(name,values,time,columns,meta.get('counts'),meta.get('preparation'))
+    if meta.get('electrode_data') is not None:
+        try:
+            stored=meta['electrode_data']
+            require(stored.get('encoding') == 'f32le-base64', 'The individual electrode data format is unsupported.')
+            electrodes=stored['electrodes']
+            raw=base64.b64decode(stored['values'],validate=True)
+            require(len(raw) == len(electrodes)*len(time)*len(columns)*4,
+                    'The saved individual electrode data is incomplete.')
+            data=np.frombuffer(raw,dtype='<f4').reshape(len(electrodes),len(time),len(columns))
+            attach_electrodes(datasets[info['id']],electrodes,data)
+        except Exception:
+            datasets.pop(info['id'],None)
+            raise
+        info=metadata(datasets[info['id']])
+    return json.dumps(info)
 
 def prepare_files(config_json, coordinates_json, progress):
     cfg=json.loads(config_json)
     outputs,counts,info=prepare('/input/recording.edf',open('/input/log.txt',encoding='utf-8-sig').read(),
         open('/input/conditions.csv',encoding='utf-8-sig').read(),json.loads(coordinates_json),
         cfg['electrodes'],cfg['conditions'],cfg['average'],cfg['recording'],progress=progress)
-    result=[register(o['name'],o['matrix'],o['time'],o['columns'],counts,info) for o in outputs]
+    result=[register(o['name'],o['matrix'],o['time'],o['columns'],counts,info,
+                     o.get('electrodes'),o.get('electrode_data')) for o in outputs]
     return json.dumps(result,default=int)
+
+
+def export_electrodes(did):
+    d=datasets[did]
+    if not d['electrodes']: return 'null'
+    return json.dumps({'encoding':'f32le-base64','electrodes':d['electrodes'],
+                      'values':base64.b64encode(d['electrode_data'].astype('<f4',copy=False).tobytes()).decode('ascii')})
 
 def export_dataset(did):
     d=datasets[did]
@@ -76,10 +116,47 @@ def close_dataset(did):
 
 def preview(did,config_json):
     d=datasets[did];cfg=json.loads(config_json);indices=cfg.get('indices',list(range(min(5,len(d['columns'])))))
+    require(len(set(indices))==len(indices) and all(type(i) is int and 0<=i<len(d['columns']) for i in indices),
+            'Invalid waveform trial selection.')
+    mode=cfg.get('mode','separate')
+    require(mode in ('single','mean','separate'), 'Select a waveform view.')
     start=max(0,int(cfg.get('start',0)*d['rate']));end=min(d['rows'],int(cfg.get('end',d['duration'])*d['rate'])+1)
+    require(end>start, 'The end time must follow the start time.')
     stride=max(1,math.ceil((end-start)/2000));ix=np.arange(start,end,stride)
-    return json.dumps({'time':d['time'][ix].tolist(),'names':[d['columns'][i] for i in indices],
-                       'values':d['matrix'][ix][:,indices].T.tolist()})
+    selected=cfg.get('electrodes')
+    source=d['groups'][0]['electrode'] if d['groups'] else ''
+    if selected is not None:
+        require(d['electrodes'], 'Individual electrode data is not saved. Upload the recording again.')
+        require(len(set(selected))==len(selected) and all(e in d['electrodes'] for e in selected),
+                'Invalid waveform electrode selection.')
+        if not selected or not indices:
+            return json.dumps({'time':[],'names':[],'values':[],'source':'','trials':len(indices)})
+        # Canonical source order keeps the label stable when checkboxes are toggled.
+        selected=[e for e in d['electrodes'] if e in selected]
+        source=selected[0] if len(selected)==1 else 'AVG_'+'_'.join(selected)
+        if len(selected)==len(d['electrodes']):
+            matrix=d['matrix'][np.ix_(ix,indices)]
+        else:
+            ei=[d['electrodes'].index(e) for e in selected]
+            matrix=d['electrode_data'][np.ix_(ei,ix,indices)].astype(float).mean(axis=0)
+    else:
+        matrix=d['matrix'][np.ix_(ix,indices)]
+    names=[d['columns'][i] for i in indices]
+    if selected is not None:
+        names=[source+'__'+name.split('__',1)[1] for name in names]
+    if mode=='mean' and indices:
+        groups=groups_for(d['columns'],set(indices))
+        require(groups, 'Trial averaging requires condition trial data.')
+        # Keep experimental conditions separate, even if a caller requests more than one.
+        values=[];names=[]
+        for g in groups:
+            positions=[indices.index(i) for i in g['indices']]
+            values.append(matrix[:,positions].mean(axis=1).tolist())
+            names.append(g['condition']+' · Mean of '+str(len(positions))+' trials')
+    else:
+        values=matrix.T.tolist()
+    return json.dumps({'time':d['time'][ix].tolist(),'names':names,'values':values,
+                       'source':source,'trials':len(indices)})
 
 def analysis_spec(did,config_json):
     d=datasets[did];cfg=json.loads(config_json)

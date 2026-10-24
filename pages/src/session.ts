@@ -1,9 +1,11 @@
-import type { Config, Dataset, Result } from "./types";
+import type { Config, Dataset, Result, ElectrodeData } from "./types";
 
 export type Source = {
   name: string;
   text: string;
-  meta?: Pick<Dataset, "counts" | "preparation">;
+  meta?: Pick<Dataset, "counts" | "preparation"> & {
+    electrode_data?: ElectrodeData;
+  };
 };
 export type Annotation = { file: string; time: number; label: string };
 

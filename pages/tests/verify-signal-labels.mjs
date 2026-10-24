@@ -12,6 +12,14 @@ async function sourceModule(path) {
 const { signalLabel, trialLabel, electrodeLabel, averageMembers, fitLabel } =
   await sourceModule("../src/signal-labels.ts");
 const { makeSession } = await sourceModule("../src/session.ts");
+const { exportName } = await sourceModule("../src/export-names.ts");
+assert.equal(exportName("DDA_I1_R4.csv", "graph_CT"), "I1_R4_graph_CT");
+assert.equal(exportName("I1_R4_prepared_E1.csv", "graph_CT"), "I1_R4_graph_CT");
+assert.equal(exportName("DDA_Test_E1.csv", "prepared.csv", "Test"), "Test_prepared.csv");
+assert.equal(exportName("/folder/new subject.csv", "results.csv"), "new subject_results.csv");
+assert.equal(exportName("old.csv", "graph", "ID_02"), "ID_02_graph");
+assert.equal(exportName("DDA_Old.csv", "graph_CT", "Other_Recording"), "Other_Recording_graph_CT");
+assert.equal(exportName("file.csv", "../graph", "a:b"), "a_b_.._graph");
 const members = Array.from({ length: 129 }, (_, i) => `E${i + 1}`);
 const average = "AVG_" + members.join("_");
 const columns = ["control", "exp1", "exp2", "exp3", "exp4", "exp5"].flatMap(
@@ -44,10 +52,14 @@ assert.equal(fitLabel("Long name", 1), "…");
 
 const config = { indices: [1, 4], variants: ["CT"], delays: [7, 10], terms: [1, 2, 10] };
 const dataset = { id: "test", name: "DDA_Test.csv", columns };
-const source = { name: dataset.name, text: "time," + columns.join(",") + "\n" };
+const source = { name: dataset.name, text: "time," + columns.join(",") + "\n", meta: {
+  preparation: { recording: "Test", bad_channels: [] },
+  electrode_data: { encoding: "f32le-base64", electrodes: members, values: "AAAAAA==" },
+} };
 const snapshot = makeSession([dataset], dataset, config, undefined, [source], [], false);
 assert.deepEqual(snapshot.selectedChannelNames, [columns[1], columns[4]]);
 assert.deepEqual(snapshot.ddaConfig.variantChannelNames.CT, [columns[1], columns[4]]);
 assert.equal(snapshot.browser.files[0].text, source.text);
 assert.equal(snapshot.browser.config.indices, config.indices);
+assert.deepEqual(JSON.parse(JSON.stringify(snapshot)).browser.files[0].meta, source.meta);
 console.log("PASS: compact trial/average labels stay distinct; full electrode membership and session/export identifiers are preserved.");

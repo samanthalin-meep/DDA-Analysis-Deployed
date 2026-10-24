@@ -6,9 +6,10 @@ import {
   Result,
   Variant,
   Preview,
+  ElectrodeData,
   defaultConfig,
 } from "./types";
-import { LinePlot, Heatmap, savePlot, palette } from "./plots";
+import { LinePlot, StackedWaveforms, waveformRows, Heatmap, savePlot, palette } from "./plots";
 import { download, save, saved } from "./storage";
 import "./style.css";
 import { makeSession, type Source } from "./session";
@@ -16,6 +17,7 @@ import { RecordingSteps, type AnalysisStep } from "./recording-steps";
 import { readConditions, readElectrodes } from "./recording-input";
 import { signalLabel, trialLabel } from "./signal-labels";
 import { SignalDetails } from "./signal-details";
+import { exportName } from "./export-names";
 
 type Note = { time: string; text: string };
 type Ica = {
@@ -200,6 +202,10 @@ function App() {
   const [search, setSearch] = useState(""),
     [preview, setPreview] = useState<Preview | null>(null),
     [previewIndices, setPreviewIndices] = useState<number[]>([0]),
+    [previewCondition, setPreviewCondition] = useState(""),
+    [previewMode, setPreviewMode] = useState<"single" | "mean" | "separate">("mean"),
+    [previewElectrodes, setPreviewElectrodes] = useState<string[]>([]),
+    [previewPage, setPreviewPage] = useState(0),
     [previewStart, setPreviewStart] = useState(0),
     [previewEnd, setPreviewEnd] = useState(0.996);
   const [ica, setIca] = useState<Ica | null>(null),
@@ -234,7 +240,7 @@ function App() {
     importInput = useRef<HTMLInputElement>(null);
   const dataset = files.find((f) => f.id === active),
     previewGroup =
-      dataset?.groups.find((g) => g.indices.includes(previewIndices[0])) ||
+      dataset?.groups.find((g) => g.condition === previewCondition) ||
       dataset?.groups[0],
     result = results.find((r) => r.id === resultId),
     variant =
@@ -323,7 +329,10 @@ function App() {
       pairs: d.groups.length ? undefined : c.pairs,
     }));
     if (d.groups.length) setPairText("");
-    setPreviewIndices([0]);
+    setPreviewIndices(d.groups[0]?.indices || [0]);
+    setPreviewCondition(d.groups[0]?.condition || "");
+    setPreviewMode(d.groups.length ? "mean" : "single");
+    setPreviewElectrodes(d.electrodes || []);
     setPreviewStart(0);
     setPreviewEnd(Math.min((d.rows - 1) / d.rate, 10));
     setPreview(null);
@@ -354,7 +363,7 @@ function App() {
         await save("files", persistSources.current);
       } catch {
         notify(
-          "The browser could not save these files. Download the prepared CSV.",
+          "Browser storage failed. Export a .ddalab session to keep the individual signals.",
         );
       }
   }
@@ -423,10 +432,18 @@ function App() {
       (page === "Visualize" || page === "Data" || page === "Overview")
     ) {
       let canceled = false;
-      rpc<Preview>("preview", {
+      setPreview(null);
+      setPreviewPage(0);
+      // Debounce checkbox changes. The worker queue also serves DDA calculations.
+      const timer = setTimeout(() => rpc<Preview>("preview", {
         id: dataset.id,
         config: {
-          indices: previewIndices.slice(0, 12),
+          indices: page === "Visualize"
+            ? previewGroup && previewMode !== "single" ? previewIndices : previewIndices.slice(0, 1)
+            : previewIndices.length ? previewIndices.slice(0, 12) : [0],
+          mode: page === "Visualize" && previewGroup ? previewMode : "separate",
+          ...(page === "Visualize" && dataset.electrodes?.length
+            ? { electrodes: previewElectrodes } : {}),
           start: previewStart,
           end: previewEnd,
         },
@@ -434,12 +451,13 @@ function App() {
         .then((p) => {
           if (!canceled) setPreview(p);
         })
-        .catch(report);
+        .catch((e) => { if (!canceled) report(e); }), 120);
       return () => {
         canceled = true;
+        clearTimeout(timer);
       };
     }
-  }, [active, page, previewIndices.join(","), previewStart, previewEnd]);
+  }, [active, page, previewIndices.join(","), previewStart, previewEnd, previewMode, previewElectrodes.join(",")]);
   const change = (key: keyof Config, value: any) =>
     setConfig((c) => ({ ...c, [key]: value }));
   function toggleIndex(i: number) {
@@ -587,10 +605,12 @@ function App() {
       );
       for (const d of outputs) {
         const text = await rpc<string>("export", { id: d.id });
+        const electrodeData = d.electrodes?.length
+          ? await rpc<ElectrodeData>("electrodes", { id: d.id }) : undefined;
         sources.current.set(d.id, {
           name: d.name,
           text,
-          meta: { counts: d.counts, preparation: d.preparation },
+          meta: { counts: d.counts, preparation: d.preparation, electrode_data: electrodeData },
         });
         setFiles((f) => [...f, d]);
         selectFile(d);
@@ -659,11 +679,20 @@ function App() {
       }
     });
   }
+  const dataExport = (kind: string) => exportName(dataset?.name, kind, dataset?.preparation?.recording);
+  const resultExport = (kind: string) => exportName(result?.file_name, kind, result?.preparation?.recording);
+  function waveformExport() {
+    const view = previewGroup ? `_${previewGroup.condition}_${previewMode}` : "";
+    const first = previewPage * waveformRows + 1;
+    const last = Math.min((previewPage + 1) * waveformRows, preview?.names.length || 0);
+    const rows = previewGroup && previewMode === "separate" ? `_trials${first}-${last}` : "";
+    return dataExport(`graph_waveform${view}${rows}`);
+  }
   async function exportData() {
     if (dataset)
       await task("Export prepared CSV", async () =>
         download(
-          dataset.name,
+          dataExport(`prepared${/^E[0-9]+$/.test(dataset.groups[0]?.electrode || "") ? "_" + dataset.groups[0].electrode : ""}.csv`),
           await rpc<string>("export", { id: dataset.id }),
           "text/csv",
         ),
@@ -681,9 +710,7 @@ function App() {
       recipe,
     );
     download(
-      (dataset?.name.replace(/\.csv$/i, "") || "DDALab") +
-        (recipe ? "-recipe" : "") +
-        ".ddalab",
+      dataExport(recipe ? "recipe.ddalab" : "session.ddalab"),
       JSON.stringify(payload, null, 2),
       "application/json",
     );
@@ -778,7 +805,7 @@ function App() {
       "exported_trials",
     ];
     download(
-      dataset.name.replace(/\.csv$/i, "_Counts.csv"),
+      dataExport("counts.csv"),
       [
         keys.join(","),
         ...dataset.counts.map((row) => keys.map((k) => row[k]).join(",")),
@@ -818,7 +845,7 @@ function App() {
               onClick={() =>
                 result &&
                 download(
-                  "DDA_result.json",
+                  resultExport("results.json"),
                   JSON.stringify(result, null, 2),
                   "application/json",
                 )
@@ -831,7 +858,7 @@ function App() {
               onClick={() =>
                 result &&
                 download(
-                  "DDA_all_variants.csv",
+                  resultExport("results_all_variants.csv"),
                   result.variants
                     .map((v) => "# " + v.id + "\n" + resultCSV(result, v))
                     .join("\n"),
@@ -852,7 +879,7 @@ function App() {
               onClick={() =>
                 savePlot(
                   view === "Heatmap" ? "heatmap-plot" : "result-plot",
-                  "DDA_graph",
+                  resultExport(`graph_${variant?.id || "DDA"}`),
                   "svg",
                 ).catch(report)
               }
@@ -863,7 +890,7 @@ function App() {
             <button
               onClick={() =>
                 download(
-                  "DDA_annotations.json",
+                  dataExport("annotations.json"),
                   JSON.stringify(annotations, null, 2),
                   "application/json",
                 )
@@ -881,7 +908,7 @@ function App() {
           onClick={() =>
             result &&
             variant &&
-            download("DDA_analysis.csv", resultCSV(result, variant), "text/csv")
+            download(resultExport(`results_${variant.id}.csv`), resultCSV(result, variant), "text/csv")
           }
         >
           Save CSV
@@ -892,7 +919,7 @@ function App() {
           onClick={() =>
             savePlot(
               view === "Heatmap" ? "heatmap-plot" : "result-plot",
-              "DDA_graph",
+              resultExport(`graph_${variant?.id || "DDA"}`),
               "png",
             ).catch(report)
           }
@@ -1649,7 +1676,7 @@ function App() {
                           <button
                             onClick={() =>
                               download(
-                                "DDA_ICA.json",
+                                exportName(ica.name, "ICA.json", files.find(d => d.name === ica.name)?.preparation?.recording),
                                 JSON.stringify(ica, null, 2),
                                 "application/json",
                               )
@@ -1993,7 +2020,10 @@ function App() {
                               const group = dataset.groups.find(
                                 (g) => g.condition === e.target.value,
                               );
-                              if (group) setPreviewIndices([group.indices[0]]);
+                              if (group) {
+                                setPreviewCondition(group.condition);
+                                setPreviewIndices(previewMode === "single" ? [group.indices[0]] : group.indices);
+                              }
                             }}
                           >
                             {dataset.groups.map((group) => (
@@ -2007,6 +2037,19 @@ function App() {
                           </select>
                         </label>
                         <label className="preview-picker">
+                          Trial view
+                          <select value={previewMode} onChange={(e) => {
+                            const mode = e.target.value as typeof previewMode;
+                            if (mode === "single") setPreviewIndices([previewIndices[0] ?? previewGroup.indices[0]]);
+                            else if (previewMode === "single") setPreviewIndices(previewGroup.indices);
+                            setPreviewMode(mode);
+                          }}>
+                            <option value="mean">Trial average</option>
+                            <option value="separate">Separate trials</option>
+                            <option value="single">One trial</option>
+                          </select>
+                        </label>
+                        {previewMode === "single" && <label className="preview-picker">
                           Trial
                           <select
                             value={previewIndices[0] ?? previewGroup.indices[0]}
@@ -2021,7 +2064,7 @@ function App() {
                               </option>
                             ))}
                           </select>
-                        </label>
+                        </label>}
                       </>
                     ) : (
                       <label className="preview-picker">
@@ -2055,8 +2098,9 @@ function App() {
                       onChange={setPreviewEnd}
                     />
                     <button
+                      disabled={!preview?.names.length}
                       onClick={() =>
-                        savePlot("waveform-plot", "DDA_waveform", "png").catch(
+                        savePlot("waveform-plot", waveformExport(), "png").catch(
                           report,
                         )
                       }
@@ -2064,16 +2108,43 @@ function App() {
                       Save graph PNG
                     </button>
                   </div>
-                  <SignalDetails electrode={previewGroup?.electrode} />
-                  {preview && (
-                    <LinePlot
+                  <SignalDetails electrode={previewGroup?.electrode}
+                    selected={previewElectrodes}
+                    onChange={dataset.electrodes?.length ? setPreviewElectrodes : undefined}
+                    onUpload={() => setUpload(true)} />
+                  <div className={previewGroup && previewMode !== "single" ? "waveform-view" : ""}>
+                    {previewGroup && previewMode !== "single" && <fieldset className="waveform-trials">
+                      <legend>Trials · {previewGroup.condition}</legend>
+                      <p>{previewIndices.length} of {previewGroup.indices.length} selected</p>
+                      <div className="waveform-trial-list">
+                        {previewGroup.indices.map(i => <label key={i}>
+                          <input type="checkbox" checked={previewIndices.includes(i)} onChange={e =>
+                            setPreviewIndices(old => e.target.checked
+                              ? [...old, i].sort((a, b) => a - b) : old.filter(x => x !== i))} />
+                          {trialLabel(dataset.columns[i])?.trial || signalLabel(dataset.columns[i])}
+                        </label>)}
+                      </div>
+                      <div className="toolbar selection-actions">
+                        <button onClick={() => setPreviewIndices(previewGroup.indices)}>Select all</button>
+                        <button onClick={() => setPreviewIndices([])}>Clear</button>
+                      </div>
+                    </fieldset>}
+                    {!preview ? <Empty text="Load waveform…" /> : !preview.names.length
+                      ? <Empty text={dataset.electrodes?.length && !previewElectrodes.length ? "Select an electrode." : "Select a trial."} />
+                      : previewGroup && previewMode === "separate" ? <StackedWaveforms
+                        key={`${active}:${previewCondition}:${previewElectrodes.join(",")}`}
+                        id="waveform-plot" time={preview.time} values={preview.values}
+                        names={preview.names} title={preview.source}
+                        page={previewPage} onPage={setPreviewPage} /> : <LinePlot
+                      key={`${active}:${previewMode}:${previewCondition}:${previewElectrodes.join(",")}`}
                       id="waveform-plot"
                       time={preview.time}
                       values={preview.values}
                       names={preview.names}
+                      title={preview.source}
                       ylabel="µV"
-                    />
-                  )}
+                    />}
+                  </div>
                   <fieldset>
                     <legend>Annotations</legend>
                     <div className="toolbar">
@@ -2375,7 +2446,7 @@ function App() {
                 disabled={!notes.length}
                 onClick={() =>
                   download(
-                    "DDA_log.txt",
+                    dataExport("log.txt"),
                     notes.map((n) => n.time + " " + n.text).join("\n"),
                   )
                 }

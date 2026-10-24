@@ -595,6 +595,77 @@ legend {
   border-radius: 4px;
   text-align: center;
 }
+.signal-members:has(input) {
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+}
+.signal-members label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  background: var(--input);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.signal-members label.selected {
+  border-color: var(--accent);
+}
+.selection-actions {
+  margin-top: 12px;
+}
+.waveform-view {
+  display: grid;
+  grid-template-columns: 205px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin: 18px 0;
+}
+.waveform-trials {
+  margin: 0;
+  min-width: 0;
+}
+.waveform-trials p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.waveform-trial-list {
+  display: grid;
+  gap: 6px;
+  max-height: 440px;
+  overflow: auto;
+}
+.waveform-trial-list label {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+.waveform-view .plot-wrap {
+  min-height: 390px;
+}
+.stacked-waveforms {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.stacked-waveforms svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.waveform-pages {
+  padding: 10px 12px;
+}
+.stacked-waveforms > p {
+  padding: 0 12px;
+  font-size: 12px;
+}
+@media (max-width: 800px) {
+  .waveform-view { grid-template-columns: minmax(0, 1fr); }
+  .waveform-trial-list { max-height: 180px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
 .reading {
   max-width: 1050px;
   width: 100%;

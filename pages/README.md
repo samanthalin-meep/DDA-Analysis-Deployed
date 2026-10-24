@@ -15,7 +15,11 @@ The deploy workflow runs on every push to `main`. A successful build publishes t
 
 Prepared CSV files can also be opened directly. A session contains its prepared data, settings, annotations, and selected result. Browser storage can retain prepared files and results across reloads. Raw EDF/TXT/conditions files are removed from worker memory after preparation. No recording is sent over the network.
 
-In Visualize, select a condition and trial. Trial labels show the condition and source event ID. Average labels use electrode ranges; open the summary to see every electrode. CSV and session identifiers retain their full original names.
+In Visualize, select one or more electrodes. One selection shows that electrode; multiple selections show their mean within each trial. Select a condition, then choose **Trial average**, **Separate trials**, or **One trial**. The trial list has **Select all** and **Clear** controls. The average uses every selected trial in that condition. Separate trials appear in stacked rows, eight per page, with one voltage scale across pages. Previous/Next controls reach every selected trial. The graph export contains the displayed rows, with their range in its filename.
+
+New preparations retain the cleaned, accepted individual signals used to make the electrode average. Browser storage and full `.ddalab` sessions preserve these signals. Prepared CSV files contain the original analysis matrix only; older average-only files require the three source files to be prepared once again to enable electrode selection. Visualization selection and trial averaging do not change the DDA matrix, settings, or selected analysis trials.
+
+Downloads start with the Recording ID, such as `I1_R4_prepared.csv`, `I1_R4_results_CT.csv`, and `I1_R4_graph_CT.png`. Waveform filenames also identify the condition, view, and displayed trial range. Older imported files use their source filename when no Recording ID was saved. Dataset column names and analysis identifiers retain their full original values.
 
 ## Conditions CSV
 
@@ -73,6 +77,7 @@ node tests/verify-engine.mjs
 node tests/verify-recording-input.mjs
 node tests/verify-condition-timing.mjs
 node tests/verify-signal-labels.mjs
+node tests/verify-waveforms.mjs
 pnpm dev
 ```
 
@@ -84,6 +89,6 @@ To repeat the complete preparation comparison, obtain the sample EDF through Git
 node tests/verify-preparation.mjs /tmp/ddalab-preparation-proof
 ```
 
-This checks the known trial counts, rejected-channel list, and full prepared E1 CSV hash. It writes prepared files only to the selected local output directory.
+This checks the default electrode-average preparation, individual-signal retention and restore, known trial counts, rejected-channel list, and full reconstructed E1 CSV hash. It writes prepared files only to the selected local output directory. `verify-waveforms.mjs` checks single and multiple electrode views, trial means, complete separate-trial output, condition isolation, unchanged DDA inputs and CSV exports, and corrupt-storage rejection in the same WebAssembly Python runtime.
 
 Source provenance and license notices are in `SOURCE.md` and `public/licenses/`. UI instructions use short command sentences and the original scientific terms. ASD-STE100 certification is not claimed.

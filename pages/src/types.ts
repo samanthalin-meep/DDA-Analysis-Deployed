@@ -9,12 +9,19 @@ export type Dataset = {
   start: number;
   groups: Group[];
   counts: Record<string, string | number>[];
+  electrodes?: string[];
   preparation?: {
+    recording?: string;
     bad_channels: string[];
     epochs: number;
     global_sd: number;
     rejected_events: number[];
   };
+};
+export type ElectrodeData = {
+  encoding: "f32le-base64";
+  electrodes: string[];
+  values: string;
 };
 export type Config = {
   window: number;
@@ -52,7 +59,7 @@ export type Result = {
   engine: string;
   preparation?: Dataset["preparation"];
 };
-export type Preview = { time: number[]; names: string[]; values: number[][] };
+export type Preview = { time: number[]; names: string[]; values: number[][]; source: string; trials: number };
 export const defaultConfig: Config = {
   window: 50,
   step: 10,

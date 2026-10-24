@@ -42,8 +42,8 @@ export function LinePlot({
     .map((v, i) => (hidden.includes(i) ? [] : v.slice(first, last + 1)))
     .flat()
     .filter(Number.isFinite);
-  const lo = visible.length ? Math.min(...visible) : 0,
-    hi = visible.length ? Math.max(...visible) : 1;
+  const lo = visible.length ? visible.reduce((a, v) => Math.min(a, v), Infinity) : 0,
+    hi = visible.length ? visible.reduce((a, v) => Math.max(a, v), -Infinity) : 1;
   const pad = (hi - lo) * 0.06 || 0.1,
     ymin = lo - pad,
     ymax = hi + pad;
@@ -258,6 +258,57 @@ export function LinePlot({
       )}
     </div>
   );
+}
+
+export const waveformRows = 8;
+
+// Each trial has its own row. All pages use the same voltage scale.
+export function StackedWaveforms({ time, values, names, title, id, page, onPage }: {
+  time: number[]; values: number[][]; names: string[]; title: string; id: string;
+  page: number; onPage: (page: number) => void;
+}) {
+  const current = Math.max(0, Math.min(page, Math.ceil(values.length / waveformRows) - 1));
+  const first = current * waveformRows, last = Math.min(first + waveformRows, values.length);
+  const peak = values.reduce((max, row) => row.reduce((m, v) => Math.max(m, Math.abs(v)), max), 0) || 1;
+  const w = 1050, left = 72, right = 26, top = 45, rowHeight = 86;
+  const h = top + (last - first) * rowHeight + 48, pw = w - left - right;
+  const xmin = time[0], xmax = time[time.length - 1];
+  const x = (t: number) => left + (t - xmin) / (xmax - xmin || 1) * pw;
+  return <div className="stacked-waveforms">
+    <div className="toolbar waveform-pages">
+      <span>Trials {first + 1}–{last} of {values.length}</span>
+      <button disabled={current === 0} onClick={() => onPage(current - 1)}>Previous</button>
+      <button disabled={last === values.length} onClick={() => onPage(current + 1)}>Next</button>
+    </div>
+    <svg id={id} viewBox={`0 0 ${w} ${h}`} role="img"
+      aria-label={`${signalLabel(title)} · Separate trials ${first + 1} to ${last}`}>
+      <rect width={w} height={h} fill="var(--surface)" />
+      <text x={left} y={22} fill="var(--text)" fontSize="16">{signalLabel(title)}</text>
+      <text x={w - right} y={22} textAnchor="end" fill="var(--muted)" fontSize="14">
+        Trials {first + 1}–{last} of {values.length} · ±{fmt(peak)} µV
+      </text>
+      {Array.from({ length: 6 }, (_, i) => {
+        const xx = left + pw * i / 5;
+        return <g key={i}>
+          <line x1={xx} x2={xx} y1={top} y2={h - 48} stroke="var(--grid)" />
+          <text x={xx} y={h - 28} textAnchor="middle" fill="var(--muted)" fontSize="14">{fmt(xmin + (xmax - xmin) * i / 5)}</text>
+        </g>;
+      })}
+      {values.slice(first, last).map((row, i) => {
+        const y = top + i * rowHeight;
+        return <g key={names[first + i]}>
+          <text x={left} y={y + 16} fill="var(--text)" fontSize="16">
+            {signalLabel(names[first + i])}<title>{names[first + i]}</title>
+          </text>
+          <line x1={left} x2={w - right} y1={y + 55} y2={y + 55} stroke="var(--grid)" />
+          <polyline fill="none" stroke={palette[0]} strokeWidth="1.5"
+            points={row.map((v, j) => `${x(time[j])},${y + 55 - v / peak * 23}`).join(" ")} />
+        </g>;
+      })}
+      <text x={left + pw / 2} y={h - 7} textAnchor="middle" fill="var(--muted)" fontSize="14">Time (s)</text>
+    </svg>
+    <p className="muted">The graph export contains these rows.</p>
+  </div>;
 }
 
 function color(t: number, scheme: string) {

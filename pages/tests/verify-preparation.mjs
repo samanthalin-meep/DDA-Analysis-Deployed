@@ -36,7 +36,7 @@ const api = py.pyimport("workspace");
 const cfg = {
   electrodes: ["E1", "E17", "E129"],
   conditions: ["control", "exp1", "exp2", "exp3", "exp4", "exp5"],
-  average: false,
+  average: true,
   recording: "WasmProof",
 };
 const start = Date.now();
@@ -48,8 +48,28 @@ const metadata = JSON.parse(
       console.log(Math.round((Date.now() - start) / 1000), label, n, total),
   ),
 );
+assert.equal(metadata.length, 1);
+assert.deepEqual(metadata[0].electrodes, cfg.electrodes);
+assert.equal(metadata[0].preparation.recording, cfg.recording);
+// Reconstruct the three original per-electrode exports from the retained signals.
+// This checks the default averaging path without a second expensive preparation.
+py.globals.set("prepared_id", metadata[0].id);
+const individual = JSON.parse(py.runPython(`
+d = workspace.datasets[prepared_id]
+original_exports = []
+for electrode, matrix in zip(d['electrodes'], d['electrode_data']):
+    columns = [electrode+'__'+name.split('__',1)[1] for name in d['columns']]
+    original_exports.append(workspace.register('DDA_WasmProof_'+electrode+'.csv', matrix, d['time'], columns))
+workspace.json.dumps(original_exports)
+`));
+metadata.push(...individual);
 for (const d of metadata)
   await writeFile(resolve(output, d.name), api.export_dataset(d.id));
+const stored = JSON.parse(api.export_electrodes(metadata[0].id));
+const restored = JSON.parse(api.open_csv(metadata[0].name, api.export_dataset(metadata[0].id), 250,
+  JSON.stringify({ preparation: metadata[0].preparation, electrode_data: stored })));
+const viewConfig = JSON.stringify({ indices: [0, 144], electrodes: ["E1", "E129"], mode: "mean" });
+assert.equal(api.preview(restored.id, viewConfig), api.preview(metadata[0].id, viewConfig));
 assert.deepEqual(
   metadata[0].counts.map((r) => r.exported_trials),
   [145, 28, 27, 30, 24, 29, 0, 0],

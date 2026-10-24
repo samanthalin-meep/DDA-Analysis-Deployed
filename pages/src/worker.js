@@ -38,6 +38,7 @@ async function execute(action,payload) {
   if(action==='close'){api.close_dataset(payload.id);return true;}
   if(action==='preview')return JSON.parse(api.preview(payload.id,JSON.stringify(payload.config)));
   if(action==='export')return api.export_dataset(payload.id);
+  if(action==='electrodes')return JSON.parse(api.export_electrodes(payload.id));
   if(action==='ica')return JSON.parse(api.run_ica(payload.id,JSON.stringify(payload.config)));
   if(action==='run') {
     const cfg=payload.config;
