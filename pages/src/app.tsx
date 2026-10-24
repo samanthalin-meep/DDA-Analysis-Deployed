@@ -14,6 +14,8 @@ import "./style.css";
 import { makeSession, type Source } from "./session";
 import { RecordingSteps, type AnalysisStep } from "./recording-steps";
 import { readConditions, readElectrodes } from "./recording-input";
+import { signalLabel, trialLabel } from "./signal-labels";
+import { SignalDetails } from "./signal-details";
 
 type Note = { time: string; text: string };
 type Ica = {
@@ -231,6 +233,9 @@ function App() {
     folderInput = useRef<HTMLInputElement>(null),
     importInput = useRef<HTMLInputElement>(null);
   const dataset = files.find((f) => f.id === active),
+    previewGroup =
+      dataset?.groups.find((g) => g.indices.includes(previewIndices[0])) ||
+      dataset?.groups[0],
     result = results.find((r) => r.id === resultId),
     variant =
       result?.variants.find((v) => v.id === variantId) || result?.variants[0];
@@ -783,9 +788,11 @@ function App() {
   }
   const fileRows =
     dataset?.columns
-      .map((name, i) => ({ name, i }))
+      .map((name, i) => ({ name, label: signalLabel(name), i }))
       .filter(
-        (x) => !search || x.name.toLowerCase().includes(search.toLowerCase()),
+        (x) =>
+          !search ||
+          `${x.name} ${x.label}`.toLowerCase().includes(search.toLowerCase()),
       ) || [];
   const checkGroup = (indices: number[], checked: boolean) =>
     change(
@@ -1091,6 +1098,9 @@ function App() {
                             <p className="muted compact">
                               Separate pooled fit per condition
                             </p>
+                            <SignalDetails
+                              electrode={dataset.groups[0].electrode}
+                            />
                             <fieldset>
                               <legend>CT pooled trial columns</legend>
                               <div className="group-checks">
@@ -1125,16 +1135,14 @@ function App() {
                                 onChange={(e) => setSearch(e.target.value)}
                               />
                               <div className="channel-list">
-                                {fileRows.map(({ name, i }) => (
-                                  <label key={name}>
+                                {fileRows.map(({ name, label, i }) => (
+                                  <label key={name} title={name}>
                                     <input
                                       type="checkbox"
                                       checked={config.indices.includes(i)}
                                       onChange={() => toggleIndex(i)}
                                     />
-                                    {name
-                                      .replace(/^.*?__/, "")
-                                      .replace("__trial_", " · ")}
+                                    {label}
                                   </label>
                                 ))}
                               </div>
@@ -1165,14 +1173,14 @@ function App() {
                               onChange={(e) => setSearch(e.target.value)}
                             />
                             <div className="channel-list">
-                              {fileRows.map(({ name, i }) => (
-                                <label key={name}>
+                              {fileRows.map(({ name, label, i }) => (
+                                <label key={name} title={name}>
                                   <input
                                     type="checkbox"
                                     checked={config.indices.includes(i)}
                                     onChange={() => toggleIndex(i)}
                                   />
-                                  {i + 1}. {name}
+                                  {i + 1}. {label}
                                 </label>
                               ))}
                             </div>
@@ -1416,7 +1424,7 @@ function App() {
                         >
                           {result?.variants.map((v) => (
                             <option key={v.id} value={v.id}>
-                              {v.id} · {v.label}
+                              {v.id} · {signalLabel(v.label)}
                             </option>
                           )) || <option value="">No result</option>}
                         </select>
@@ -1469,6 +1477,16 @@ function App() {
                               <dd>{result.file_name}</dd>
                               <dt>Variant</dt>
                               <dd>{variant.id}</dd>
+                              {result.trial_groups[0]?.electrode && (
+                                <>
+                                  <dt>Signal</dt>
+                                  <dd>
+                                    <SignalDetails
+                                      electrode={result.trial_groups[0].electrode}
+                                    />
+                                  </dd>
+                                </>
+                              )}
                               <dt>Windows</dt>
                               <dd>{variant.matrix[0]?.length}</dd>
                               <dt>Window length / step</dt>
@@ -1497,7 +1515,9 @@ function App() {
                               <tbody>
                                 {variant.matrix.map((row, i) => (
                                   <tr key={i}>
-                                    <td>{variant.row_labels[i]}</td>
+                                    <td title={variant.row_labels[i]}>
+                                      {signalLabel(variant.row_labels[i])}
+                                    </td>
                                     <td>
                                       {result.trial_groups[i]?.indices.length ||
                                         "—"}
@@ -1674,7 +1694,9 @@ function App() {
                               <tbody>
                                 {c.spatial.map((v, i) => (
                                   <tr key={i}>
-                                    <td>{ica.channels[i]}</td>
+                                    <td title={ica.channels[i]}>
+                                      {signalLabel(ica.channels[i])}
+                                    </td>
                                     <td>{v.toPrecision(8)}</td>
                                   </tr>
                                 ))}
@@ -1761,7 +1783,7 @@ function App() {
                   {variant && result ? (
                     <>
                       <p className="muted">
-                        {variant.id} · {variant.label}
+                        {variant.id} · {signalLabel(variant.label)}
                       </p>
                       <Heatmap
                         values={variant.matrix}
@@ -1833,8 +1855,12 @@ function App() {
                           names={
                             same
                               ? [
-                                  ...va.row_labels.map((n) => "A · " + n),
-                                  ...vb.row_labels.map((n) => "B · " + n),
+                                  ...va.row_labels.map(
+                                    (n) => "A · " + signalLabel(n),
+                                  ),
+                                  ...vb.row_labels.map(
+                                    (n) => "B · " + signalLabel(n),
+                                  ),
                                 ]
                               : va.row_labels
                           }
@@ -1853,7 +1879,9 @@ function App() {
                                 (row, i) =>
                                   vb.matrix[i] && (
                                     <tr key={i}>
-                                      <td>{va.row_labels[i]}</td>
+                                      <td title={va.row_labels[i]}>
+                                        {signalLabel(va.row_labels[i])}
+                                      </td>
                                       <td>
                                         {Math.sqrt(
                                           row.reduce(
@@ -1905,6 +1933,7 @@ function App() {
                       {dataset.groups.map((g) => g.condition).join(", ") || "—"}
                     </dd>
                   </dl>
+                  <SignalDetails electrode={dataset.groups[0]?.electrode} />
                   {preview && (
                     <LinePlot
                       id="overview-plot"
@@ -1954,21 +1983,63 @@ function App() {
               {dataset ? (
                 <>
                   <div className="toolbar">
-                    <label>
-                      Channel
-                      <select
-                        value={previewIndices[0] ?? 0}
-                        onChange={(e) =>
-                          setPreviewIndices([Number(e.target.value)])
-                        }
-                      >
-                        {dataset.columns.map((name, i) => (
-                          <option key={i} value={i}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    {previewGroup ? (
+                      <>
+                        <label className="preview-picker">
+                          Condition
+                          <select
+                            value={previewGroup.condition}
+                            onChange={(e) => {
+                              const group = dataset.groups.find(
+                                (g) => g.condition === e.target.value,
+                              );
+                              if (group) setPreviewIndices([group.indices[0]]);
+                            }}
+                          >
+                            {dataset.groups.map((group) => (
+                              <option
+                                key={group.condition}
+                                value={group.condition}
+                              >
+                                {group.condition} ({group.indices.length} trials)
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="preview-picker">
+                          Trial
+                          <select
+                            value={previewIndices[0] ?? previewGroup.indices[0]}
+                            onChange={(e) =>
+                              setPreviewIndices([Number(e.target.value)])
+                            }
+                          >
+                            {previewGroup.indices.map((i) => (
+                              <option key={i} value={i}>
+                                {trialLabel(dataset.columns[i])?.trial ||
+                                  signalLabel(dataset.columns[i])}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </>
+                    ) : (
+                      <label className="preview-picker">
+                        Channel
+                        <select
+                          value={previewIndices[0] ?? 0}
+                          onChange={(e) =>
+                            setPreviewIndices([Number(e.target.value)])
+                          }
+                        >
+                          {dataset.columns.map((name, i) => (
+                            <option key={i} value={i}>
+                              {signalLabel(name)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <NumberField
                       label="Start (s)"
                       value={previewStart}
@@ -1993,6 +2064,7 @@ function App() {
                       Save graph PNG
                     </button>
                   </div>
+                  <SignalDetails electrode={previewGroup?.electrode} />
                   {preview && (
                     <LinePlot
                       id="waveform-plot"
@@ -2124,7 +2196,9 @@ function App() {
                         <tr>
                           <th>Time (s)</th>
                           {preview?.names.slice(0, 5).map((n) => (
-                            <th key={n}>{n}</th>
+                            <th key={n} title={n}>
+                              {signalLabel(n)}
+                            </th>
                           ))}
                         </tr>
                       </thead>

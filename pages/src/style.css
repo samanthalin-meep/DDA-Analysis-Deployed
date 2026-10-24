@@ -545,6 +545,47 @@ legend {
 .panel .field {
   max-width: 450px;
 }
+.preview-picker {
+  display: grid;
+  gap: 6px;
+  min-width: 150px;
+  max-width: 100%;
+}
+.preview-picker select {
+  min-width: 0;
+  width: 100%;
+}
+.signal-summary {
+  margin: 12px 0;
+  color: var(--muted);
+}
+.signal-source {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.signal-source summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.signal-source p {
+  color: var(--muted);
+}
+.signal-members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+  max-height: 180px;
+  overflow: auto;
+}
+.signal-members span {
+  padding: 4px;
+  background: var(--input);
+  border-radius: 4px;
+  text-align: center;
+}
 .reading {
   max-width: 1050px;
   width: 100%;

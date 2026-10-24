@@ -15,6 +15,8 @@ The deploy workflow runs on every push to `main`. A successful build publishes t
 
 Prepared CSV files can also be opened directly. A session contains its prepared data, settings, annotations, and selected result. Browser storage can retain prepared files and results across reloads. Raw EDF/TXT/conditions files are removed from worker memory after preparation. No recording is sent over the network.
 
+In Visualize, select a condition and trial. Trial labels show the condition and source event ID. Average labels use electrode ranges; open the summary to see every electrode. CSV and session identifiers retain their full original names.
+
 ## Implementation
 
 - React interface with the original desktop colors, layout, tab structure, defaults, and graph semantics.
@@ -58,6 +60,7 @@ pnpm check
 pnpm build
 node tests/verify-engine.mjs
 node tests/verify-recording-input.mjs
+node tests/verify-signal-labels.mjs
 pnpm dev
 ```
 

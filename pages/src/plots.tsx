@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { download } from "./storage";
+import { fitLabel, signalLabel } from "./signal-labels";
 export const palette = [
   "#3288ff",
   "#ff3333",
@@ -34,6 +35,7 @@ export function LinePlot({
   const [range, setRange] = useState<[number, number] | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   const drag = useRef<number | null>(null);
+  const labels = names.map(signalLabel);
   const first = range?.[0] ?? 0,
     last = range?.[1] ?? time.length - 1;
   const visible = values
@@ -49,7 +51,10 @@ export function LinePlot({
     h = 480,
     left = 67,
     top = 30,
-    right = 145,
+    right = Math.min(
+      270,
+      Math.max(145, Math.max(0, ...labels.map((label) => label.length)) * 6 + 45),
+    ),
     bottom = 55,
     pw = w - left - right,
     ph = h - top - bottom;
@@ -71,7 +76,7 @@ export function LinePlot({
         id={id}
         viewBox={`0 0 ${w} ${h}`}
         role="img"
-        aria-label={title || "Analysis graph"}
+        aria-label={signalLabel(title) || "Analysis graph"}
         onDoubleClick={() => setRange(null)}
         onPointerDown={(e) => {
           drag.current = at(e);
@@ -97,7 +102,8 @@ export function LinePlot({
           fill="var(--muted)"
           fontSize="12"
         >
-          {title}
+          {signalLabel(title)}
+          <title>{title}</title>
         </text>
         <rect
           x={left}
@@ -206,7 +212,7 @@ export function LinePlot({
               fill="var(--text)"
               fontSize="11"
             >
-              {name.length > 15 ? name.slice(0, 14) + "…" : name}
+              {fitLabel(labels[i], Math.floor((right - 40) / 6))}
               <title>{name}</title>
             </text>
           </g>
@@ -224,7 +230,7 @@ export function LinePlot({
             <rect
               x={left + 9}
               y={top + 8}
-              width="210"
+              width="290"
               height={24 + Math.min(values.length, 8) * 16}
               fill="var(--surface)"
               stroke="var(--border)"
@@ -238,7 +244,7 @@ export function LinePlot({
                   dy="16"
                   fill={palette[i % palette.length]}
                 >
-                  {(names[i] || "").slice(0, 18)}: {fmt(row[hover])}
+                  {fitLabel(labels[i] || "", 32)}: {fmt(row[hover])}
                 </tspan>
               ))}
             </text>
@@ -318,7 +324,8 @@ export function Heatmap({
               fill="var(--text)"
               fontSize="12"
             >
-              {(names[i] || "").slice(0, 20)}
+              {fitLabel(signalLabel(names[i] || ""), 22)}
+              <title>{names[i]}</title>
             </text>
             {row.map((v, j) => (
               <rect
@@ -330,7 +337,7 @@ export function Heatmap({
                 fill={color((v - lo) / (hi - lo || 1), scheme)}
               >
                 <title>
-                  {names[i]} · {fmt(time[j] ?? j)} s · {fmt(v)}
+                  {signalLabel(names[i] || "")} · {fmt(time[j] ?? j)} s · {fmt(v)}
                 </title>
               </rect>
             ))}
