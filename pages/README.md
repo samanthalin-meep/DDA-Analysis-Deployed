@@ -8,7 +8,7 @@ The deploy workflow runs on every push to `main`. A successful build publishes t
 
 1. Select **Upload recording**.
 2. Select the EDF, acquisition TXT, and conditions CSV from one recording.
-3. Enter a recording ID. Select electrodes and conditions from the uploaded files. The ID and selections start empty. Multiple electrodes can be averaged within each trial or exported separately.
+3. Enter a recording ID. All electrodes and analysis conditions are selected when their files load. Use the checkboxes or **Select all** and **Clear** at the bottom of each box to change the selection. Multiple electrodes can be averaged within each trial or exported separately.
 4. Select **Run preparation**. The same page opens **Trials and settings** with the prepared data loaded.
 5. Select trials and DDA settings. Select **Run DDA**. The same page moves to **Results**. Use the step controls to return to settings.
 6. Download CSV, PNG, SVG, JSON, or a `.ddalab` session.

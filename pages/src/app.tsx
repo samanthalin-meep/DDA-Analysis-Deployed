@@ -517,6 +517,8 @@ function App() {
           ? await readElectrodes(file)
           : readConditions(await file.text());
       if (recordingInputVersion.current[key] !== version) return;
+      if (key === "edf") setElectrodeSelection(choices);
+      else setConditionSelection(choices);
       setRecordingOptions((s) => ({
         ...s,
         [key]: { choices, reading: false, error: "" },
@@ -2399,25 +2401,6 @@ function App() {
               <div className="upload-groups">
                 <fieldset aria-busy={recordingOptions.edf.reading}>
                   <legend>Electrodes</legend>
-                  <div className="toolbar">
-                    <button
-                      type="button"
-                      disabled={busy || !electrodes.length}
-                      onClick={() => setElectrodeSelection(electrodes)}
-                    >
-                      Select all
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || !electrodeSelection.length}
-                      onClick={() => setElectrodeSelection([])}
-                    >
-                      Clear
-                    </button>
-                    <span className="muted">
-                      {electrodeSelection.length} selected
-                    </span>
-                  </div>
                   {!electrodes.length && (
                     <p
                       role={recordingOptions.edf.error ? "alert" : "status"}
@@ -2452,10 +2435,64 @@ function App() {
                       </label>
                     ))}
                   </div>
+                  <div className="toolbar upload-selection-actions">
+                    <button
+                      type="button"
+                      disabled={busy || !electrodes.length}
+                      onClick={() => setElectrodeSelection(electrodes)}
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !electrodeSelection.length}
+                      onClick={() => setElectrodeSelection([])}
+                    >
+                      Clear
+                    </button>
+                    <span className="muted">
+                      {electrodeSelection.length} selected
+                    </span>
+                  </div>
                 </fieldset>
                 <fieldset aria-busy={recordingOptions.csv.reading}>
                   <legend>Conditions</legend>
-                  <div className="toolbar">
+                  {!conditions.length && (
+                    <p
+                      role={recordingOptions.csv.error ? "alert" : "status"}
+                      className={
+                        recordingOptions.csv.error ? "error-text" : "muted"
+                      }
+                    >
+                      {recordingOptions.csv.reading
+                        ? "Read conditions…"
+                        : recordingOptions.csv.error || "Select a conditions CSV."}
+                    </p>
+                  )}
+                  <div className="condition-list">
+                    {conditions.map((name) => (
+                      <label className="check" key={name}>
+                        <input
+                          type="checkbox"
+                          disabled={busy}
+                          checked={conditionSelection.includes(name)}
+                          onChange={(e) =>
+                            setConditionSelection(
+                              e.target.checked
+                                ? conditions.filter(
+                                    (c) =>
+                                      c === name ||
+                                      conditionSelection.includes(c),
+                                  )
+                                : conditionSelection.filter((x) => x !== name),
+                            )
+                          }
+                        />
+                        {name}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="toolbar upload-selection-actions">
                     <button
                       type="button"
                       disabled={busy || !conditions.length}
@@ -2474,64 +2511,33 @@ function App() {
                       {conditionSelection.length} selected
                     </span>
                   </div>
-                  {!conditions.length && (
-                    <p
-                      role={recordingOptions.csv.error ? "alert" : "status"}
-                      className={
-                        recordingOptions.csv.error ? "error-text" : "muted"
-                      }
-                    >
-                      {recordingOptions.csv.reading
-                        ? "Read conditions…"
-                        : recordingOptions.csv.error || "Select a conditions CSV."}
-                    </p>
-                  )}
-                  {conditions.map((name) => (
-                    <label className="check" key={name}>
-                      <input
-                        type="checkbox"
-                        disabled={busy}
-                        checked={conditionSelection.includes(name)}
-                        onChange={(e) =>
-                          setConditionSelection(
-                            e.target.checked
-                              ? conditions.filter(
-                                  (c) =>
-                                    c === name ||
-                                    conditionSelection.includes(c),
-                                )
-                              : conditionSelection.filter((x) => x !== name),
-                          )
-                        }
-                      />
-                      {name}
-                    </label>
-                  ))}
-                  {electrodeSelection.length > 1 && (
-                    <fieldset>
-                      <legend>Electrode export</legend>
-                      <label className="check">
-                        <input
-                          type="radio"
-                          name="average"
-                          checked={!average}
-                          onChange={() => setAverage(false)}
-                        />
-                        Separate files
-                      </label>
-                      <label className="check">
-                        <input
-                          type="radio"
-                          name="average"
-                          checked={average}
-                          onChange={() => setAverage(true)}
-                        />
-                        Average within each trial
-                      </label>
-                    </fieldset>
-                  )}
                 </fieldset>
               </div>
+              {electrodeSelection.length > 1 && (
+                <fieldset className="electrode-export">
+                  <legend>Electrode export</legend>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="average"
+                      disabled={busy}
+                      checked={!average}
+                      onChange={() => setAverage(false)}
+                    />
+                    Separate files
+                  </label>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="average"
+                      disabled={busy}
+                      checked={average}
+                      onChange={() => setAverage(true)}
+                    />
+                    Average within each trial
+                  </label>
+                </fieldset>
+              )}
               <details className="recipe">
                 <summary>Preparation settings</summary>
                 <p>E57/E100 reference · 57–63 Hz stop · 0.1–30 Hz pass</p>

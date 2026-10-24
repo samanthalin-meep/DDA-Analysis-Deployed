@@ -743,7 +743,13 @@ progress {
   margin-top: 18px;
 }
 .upload-groups > fieldset {
+  display: flex;
+  flex-direction: column;
   margin: 0;
+}
+.upload-selection-actions {
+  margin-top: auto;
+  padding-top: 16px;
 }
 .electrode-grid {
   display: grid;
@@ -751,7 +757,6 @@ progress {
   gap: 10px;
   max-height: 195px;
   overflow: auto;
-  margin-top: 16px;
   padding: 0 2px;
 }
 .electrode-grid label {
@@ -764,7 +769,7 @@ progress {
   width: 14px;
   height: 14px;
 }
-.upload-groups fieldset fieldset {
+.electrode-export {
   margin-top: 18px;
 }
 .recipe {
@@ -931,13 +936,10 @@ progress {
   .electrode-grid {
     grid-template-columns: repeat(6, 1fr);
   }
-  .upload-groups > fieldset:last-child {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .upload-groups > fieldset:last-child > label {
-    width: 29%;
+  .condition-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 10px;
   }
   .toolbar > .field {
     width: 200px;
