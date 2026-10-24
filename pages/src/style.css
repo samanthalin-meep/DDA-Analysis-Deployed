@@ -193,17 +193,18 @@ p {
   flex-wrap: nowrap;
 }
 .open-files {
-  padding: 3px 16px 12px;
+  padding: 8px 16px 12px;
   border-bottom: 1px solid var(--border);
   min-height: 77px;
 }
 .open-files > .muted {
   font-size: 13px;
-  padding-bottom: 7px;
+  padding-bottom: 9px;
 }
 .file-tabs {
   display: flex;
-  gap: 6px;
+  gap: 8px;
+  padding: 4px;
   overflow: auto;
   min-height: 34px;
 }
@@ -254,6 +255,14 @@ p {
 }
 nav {
   padding: 0 16px;
+}
+.app > nav {
+  padding-top: 6px;
+}
+.app > nav > .tabs {
+  gap: 8px;
+  padding: 4px 2px 6px;
+  border-bottom-color: var(--border);
 }
 .main-shell {
   display: flex;
