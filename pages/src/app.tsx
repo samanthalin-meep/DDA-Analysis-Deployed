@@ -176,7 +176,7 @@ function App() {
     [recording, setRecording] = useState(""),
     [electrodeSelection, setElectrodeSelection] = useState<string[]>([]),
     [conditionSelection, setConditionSelection] = useState<string[]>([]),
-    [average, setAverage] = useState(false);
+    [average, setAverage] = useState(true);
   const [recordingOptions, setRecordingOptions] = useState({
     edf: emptyOptions(),
     csv: emptyOptions(),
@@ -594,7 +594,7 @@ function App() {
       setUpload(false);
       for (const key of ["edf", "txt", "csv"] as const) void pickRecording(key);
       setRecording("");
-      setAverage(false);
+      setAverage(true);
       setResultId("");
       openAnalysis("settings");
       notify(
