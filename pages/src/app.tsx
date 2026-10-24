@@ -9,7 +9,7 @@ import {
   ElectrodeData,
   defaultConfig,
 } from "./types";
-import { LinePlot, StackedWaveforms, waveformRows, Heatmap, savePlot, palette } from "./plots";
+import { LinePlot, StackedWaveforms, Heatmap, savePlot, palette } from "./plots";
 import { download, save, saved } from "./storage";
 import "./style.css";
 import { makeSession, type Source } from "./session";
@@ -678,13 +678,6 @@ function App() {
   }
   const dataExport = (kind: string) => exportName(dataset?.name, kind, dataset?.preparation?.recording);
   const resultExport = (kind: string) => exportName(result?.file_name, kind, result?.preparation?.recording);
-  function waveformExport() {
-    const view = previewGroup ? `_${previewGroup.condition}_${previewMode}` : "";
-    const first = previewPage * waveformRows + 1;
-    const last = Math.min((previewPage + 1) * waveformRows, preview?.names.length || 0);
-    const rows = previewGroup && previewMode === "separate" ? `_trials${first}-${last}` : "";
-    return dataExport(`graph_waveform${view}${rows}`);
-  }
   async function exportData() {
     if (dataset)
       await task("Export prepared CSV", async () =>
@@ -876,7 +869,7 @@ function App() {
               onClick={() =>
                 savePlot(
                   view === "Heatmap" ? "heatmap-plot" : "result-plot",
-                  resultExport(`graph_${variant?.id || "DDA"}`),
+                  resultExport("graph"),
                   "svg",
                 ).catch(report)
               }
@@ -916,7 +909,7 @@ function App() {
           onClick={() =>
             savePlot(
               view === "Heatmap" ? "heatmap-plot" : "result-plot",
-              resultExport(`graph_${variant?.id || "DDA"}`),
+              resultExport("graph"),
               "png",
             ).catch(report)
           }
@@ -2086,7 +2079,7 @@ function App() {
                     <button
                       disabled={!preview?.names.length}
                       onClick={() =>
-                        savePlot("waveform-plot", waveformExport(), "png").catch(
+                        savePlot("waveform-plot", dataExport("graph"), "png").catch(
                           report,
                         )
                       }

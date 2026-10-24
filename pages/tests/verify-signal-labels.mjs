@@ -13,12 +13,12 @@ const { signalLabel, trialLabel, electrodeLabel, averageMembers, fitLabel } =
   await sourceModule("../src/signal-labels.ts");
 const { makeSession } = await sourceModule("../src/session.ts");
 const { exportName } = await sourceModule("../src/export-names.ts");
-assert.equal(exportName("DDA_I1_R4.csv", "graph_CT"), "I1_R4_graph_CT");
-assert.equal(exportName("I1_R4_prepared_E1.csv", "graph_CT"), "I1_R4_graph_CT");
+assert.equal(exportName("DDA_I1_R4.csv", "graph"), "I1_R4_graph");
+assert.equal(exportName("I1_R4_prepared_E1.csv", "graph"), "I1_R4_graph");
 assert.equal(exportName("DDA_Test_E1.csv", "prepared.csv", "Test"), "Test_prepared.csv");
 assert.equal(exportName("/folder/new subject.csv", "results.csv"), "new subject_results.csv");
 assert.equal(exportName("old.csv", "graph", "ID_02"), "ID_02_graph");
-assert.equal(exportName("DDA_Old.csv", "graph_CT", "Other_Recording"), "Other_Recording_graph_CT");
+assert.equal(exportName("DDA_Old.csv", "graph", "Other_Recording"), "Other_Recording_graph");
 assert.equal(exportName("file.csv", "../graph", "a:b"), "a_b_.._graph");
 const members = Array.from({ length: 129 }, (_, i) => `E${i + 1}`);
 const average = "AVG_" + members.join("_");

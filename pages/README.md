@@ -15,11 +15,11 @@ The deploy workflow runs on every push to `main`. A successful build publishes t
 
 Prepared CSV files can also be opened directly. A session contains its prepared data, settings, annotations, and selected result. Browser storage can retain prepared files and results across reloads. Raw EDF/TXT/conditions files are removed from worker memory after preparation. No recording is sent over the network.
 
-In Visualize, select one or more electrodes. One selection shows that electrode; multiple selections show their mean within each trial. Select a condition, then choose **Trial average**, **Separate trials**, or **One trial**. The trial list has **Select all** and **Clear** controls. The average uses every selected trial in that condition. Separate trials appear in stacked rows, eight per page, with one voltage scale across pages. Previous/Next controls reach every selected trial. The graph export contains the displayed rows, with their range in its filename.
+In Visualize, select one or more electrodes. One selection shows that electrode; multiple selections show their mean within each trial. Select a condition, then choose **Trial average**, **Separate trials**, or **One trial**. The trial list has **Select all** and **Clear** controls. The average uses every selected trial in that condition. Separate trials appear in stacked rows, eight per page, with one voltage scale across pages. Previous/Next controls reach every selected trial. The graph export contains the displayed rows.
 
 New preparations retain the cleaned, accepted individual signals used to make the electrode average. Browser storage and full `.ddalab` sessions preserve these signals. Prepared CSV files contain the original analysis matrix only; older average-only files require the three source files to be prepared once again to enable electrode selection. Visualization selection and trial averaging do not change the DDA matrix, settings, or selected analysis trials.
 
-Downloads start with the Recording ID, such as `I1_R4_prepared.csv`, `I1_R4_results_CT.csv`, and `I1_R4_graph_CT.png`. Waveform filenames also identify the condition, view, and displayed trial range. Older imported files use their source filename when no Recording ID was saved. Dataset column names and analysis identifiers retain their full original values.
+Downloads start with the Recording ID, such as `I1_R4_prepared.csv`, `I1_R4_results_CT.csv`, and `I1_R4_graph.png`. All PNG and SVG graphs use `[Recording ID]_graph` without additional suffixes. Older imported files use their source filename when no Recording ID was saved. Dataset column names and analysis identifiers retain their full original values.
 
 ## Conditions CSV
 
