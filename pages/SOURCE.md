@@ -16,6 +16,8 @@ The original MATLAB recipe, scientific dependencies, and desktop app snapshot ar
 - `programs/erplab12.20/pop_functions/pop_artextval.m`: inclusive ±4.5 threshold on globally normalized single-precision samples, all channels.
 - HydroCel coordinates from `GSN-HydroCel-129.sfp`; `Cz` is renamed E129.
 
+The input adapter also accepts stimulus tables with `Duration`, `Intertrial Interval`, and `Condition`. It validates each duration-plus-gap interval against the acquisition log's internal event clock within 100 ms, then uses the recorded times, not cumulative scheduled times, for EEG alignment. Existing `sec_time` tables retain the original 1e-8-second message-time check. `STRT` and `stim` events receive table labels. Other logged events, such as `net`, remain in the exact EDF Status-pulse verification but are omitted from trial epochs and counts. Reference, filters, interpolation, resampling, epoching, and artifact calculations are unchanged.
+
 `python/workspace.py` follows the original desktop loader's trial-column grouping and the FastICA settings in `reference/desktop/ddalab_qt/backend/api.py`. Scientific library versions are pinned in `runtime-manifest.json` and the Pyodide lock file.
 
 `scripts/engine.mjs` copies the original MIT-licensed Rust numerical sources from `vendor/dda-rs`. It substitutes a browser monotonic clock and initializes the progress timer without subtracting one second, which could underflow in a newly created worker. Numerical algorithms are unchanged. Rayon uses its documented single-thread fallback. The wrapper only accepts a request, labels, and an f64 matrix, and returns the original result.

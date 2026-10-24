@@ -13,6 +13,9 @@ import numpy as np
 from scipy import signal, special
 
 CONDITIONS = ['control', 'exp1', 'exp2', 'exp3', 'exp4', 'exp5', 'reject', 'start']
+# This checks the stimulus schedule, not EEG onset accuracy. Actual onsets always
+# come from the acquisition log and must match physical Status pulses exactly.
+SCHEDULE_TOLERANCE_SECONDS = 0.1
 
 
 def require(ok, message):
@@ -20,32 +23,82 @@ def require(ok, message):
         raise ValueError(message)
 
 
+def read_condition_rows(csv_text):
+    reader = csv.reader(io.StringIO(csv_text.lstrip('\ufeff')))
+    original_header = next(reader, [])
+    header = [name.strip().lower() for name in original_header]
+    require(len(set(header)) == len(header), 'The CSV header has repeated columns.')
+    label_column = 'label' if 'label' in header else 'condition'
+    duration_table = 'sec_time' not in header
+    require(label_column in header and (not duration_table or all(name in header for name in ('duration', 'intertrial interval'))),
+            'Use sec_time and label, or Duration, Intertrial Interval and Condition columns.')
+    rows = []
+    for row_number, values in enumerate(reader, 2):
+        if not values: continue
+        require(len(values) == len(header), 'The CSV columns do not match its header.')
+        row = dict(zip(header, values))
+        if 'label' in row and 'condition' in row:
+            require(row['label'] == row['condition'], f'The condition columns differ at CSV row {row_number}.')
+        row['label'] = row[label_column]
+        for name in ('duration', 'intertrial interval') if duration_table else ('sec_time',):
+            value = row[name].strip()
+            require(re.fullmatch(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?', value),
+                    f'Invalid {original_header[header.index(name)]} at CSV row {row_number}. Use nonnegative seconds.')
+            row[name] = float(value)
+            require(math.isfinite(row[name]) and row[name] >= 0,
+                    f'Invalid {original_header[header.index(name)]} at CSV row {row_number}. Use nonnegative seconds.')
+        require(row['label'] in CONDITIONS, 'Unknown condition: '+row['label'])
+        rows.append(row)
+    require(rows, 'The conditions CSV has no events.')
+    return rows, duration_table
+
+
 def read_events(log_text, csv_text):
+    rows, duration_table = read_condition_rows(csv_text)
     pattern = r'^(\d+):(\d+):(\d+)\.(\d+)\.(\d+): Event: (\d+):(\d+):(\d+)\.(\d+), ([^,]+),'
-    events = []
+    physical_events = []
     for line in log_text.splitlines():
         m = re.match(pattern, line)
         if m:
             n = [int(x) for x in m.groups()[:9]]
-            events.append((n[0]*3600+n[1]*60+n[2]+n[3]/1000+n[4]/1e6,
+            physical_events.append((n[0]*3600+n[1]*60+n[2]+n[3]/1000+n[4]/1e6,
                            n[5]*3600+n[6]*60+n[7]+n[8]/1000, m[10]))
-    rows = list(csv.DictReader(io.StringIO(csv_text.lstrip('\ufeff'))))
+    events = [event for event in physical_events if event[2] in ('STRT', 'stim')]
     require(len(events) >= 2, 'The TXT file has no usable events.')
-    require(len(rows) == len(events), 'The CSV and TXT event counts differ.')
-    require('sec_time' in rows[0] and 'label' in rows[0], 'The CSV needs sec_time and label columns.')
+    require(len(rows) == len(events), 'The CSV and TXT trial event counts differ.')
     for row, event in zip(rows, events):
-        require(abs(float(row['sec_time'])-event[0]) < 1e-8, 'The CSV times do not match the TXT file.')
-        require(row['label'] in CONDITIONS, 'Unknown condition: '+row['label'])
+        if not duration_table:
+            require(abs(row['sec_time']-event[0]) < 1e-8, 'The CSV times do not match the TXT file.')
         require(event[2] in ('STRT', 'stim') and (event[2] == 'STRT') == (row['label'] == 'start'),
                 'The CSV labels do not match the acquisition event codes.')
+    if duration_table:
+        for index, row in enumerate(rows[:-1]):
+            expected = row['duration'] + row['intertrial interval']
+            actual = events[index+1][1] - events[index][1]
+            require(expected > 0 and abs(actual-expected) <= SCHEDULE_TOLERANCE_SECONDS + 1e-8,
+                    f'The duration table does not match the TXT timing at CSV row {index+2}. Use files from one recording.')
     durations = re.findall(r'Recording duration ([0-9.]+), record duration', log_text)
     rate = re.search(r'Sampling Rate:\s*(\d+) s/s', log_text)
     require(len(durations) == 1 and rate and int(rate[1]) == 1000,
             'Use one continuous 1000 Hz acquisition log.')
-    return events, [r['label'] for r in rows], float(durations[0])
+    return events, [r['label'] for r in rows], float(durations[0]), physical_events
 
 
-def read_edf(path, duration, events, progress=lambda *x: None):
+def trial_samples(status, events, physical_events=None):
+    expected = np.array([e[1]*1000 for e in (physical_events if physical_events is not None else events)])
+    ix = np.rint(expected).astype(int)-1
+    require(np.all(ix >= 0) and np.all(ix < len(status)) and np.all(np.diff(ix)>1), 'The event samples are invalid.')
+    # Verify every logged event, including system markers omitted from trial rows.
+    pulse = status[ix[0]]
+    found = np.flatnonzero(status == pulse)+1
+    require(len(found) == len(expected) and np.max(np.abs(found-expected)) < 1e-6,
+            'The physical Status pulses do not match the TXT events.')
+    indices = np.rint([e[1]*1000 for e in events]).astype(int)
+    require(np.all(np.isin(indices, found)), 'A trial does not match a physical Status pulse.')
+    return indices
+
+
+def read_edf(path, duration, events, progress=lambda *x: None, physical_events=None):
     with open(path, 'rb') as f:
         h = f.read(256)
         require(len(h) == 256 and h[:8].strip() == b'0', 'Use an EDF recording.')
@@ -72,18 +125,10 @@ def read_edf(path, duration, events, progress=lambda *x: None):
             raw = np.frombuffer(f.read(int(ns.sum())*2), dtype='<i2')
             require(raw.size == ns.sum(), 'The EDF file is incomplete.')
             samples[:,record*ns[0]:(record+1)*ns[0]] = raw.reshape(130,ns[0])*gain[:,None]+offset[:,None]
-    status = samples[129,:keep]
-    expected = np.array([e[1]*1000 for e in events])
-    # An aligned event must have the same physical Status value at every pulse.
-    ix = np.rint(expected).astype(int)-1
-    require(np.all(ix >= 0) and np.all(ix < keep) and np.all(np.diff(ix)>1), 'The event samples are invalid.')
-    pulse = status[ix[0]]
-    found = np.flatnonzero(status == pulse)+1
-    require(len(found) == len(expected) and np.max(np.abs(found-expected)) < 1e-6,
-            'The physical Status pulses do not match the TXT events.')
+    indices = trial_samples(samples[129,:keep], events, physical_events)
     if keep < total:
         require(np.all(samples[:,keep:] == samples[:,-1:]), 'The EDF contains nonconstant trailing samples.')
-    return samples[:129,:keep].copy(), found
+    return samples[:129,:keep].copy(), indices
 
 
 def lowpass(order, fc, window=None):
@@ -148,9 +193,9 @@ def prepare(edf_path, log_text, csv_text, coordinates, electrodes=None, conditio
     require(conditions, 'Select at least one condition.')
     require(electrodes and len(set(electrodes)) == len(electrodes) and all(re.fullmatch(r'E(?:[1-9]|[1-9][0-9]|1[0-2][0-9])',e) for e in electrodes), 'Select unique electrodes E1–E129.')
     require(conditions and len(set(conditions)) == len(conditions) and all(c in CONDITIONS for c in conditions), 'Select unique conditions.')
-    events, labels, duration = read_events(log_text,csv_text)
+    events, labels, duration, physical_events = read_events(log_text,csv_text)
     progress('Read EDF',0,1)
-    data, pulse_indices = read_edf(edf_path,duration,events,progress)
+    data, pulse_indices = read_edf(edf_path,duration,events,progress,physical_events=physical_events)
     if checkpoint: checkpoint('import',data)
     # MATLAB promotes the reference matrix to single for this mixed product.
     reference = np.eye(129,dtype=np.float32)

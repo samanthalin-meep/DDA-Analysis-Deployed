@@ -41,7 +41,17 @@ await assert.rejects(
 
 assert.deepEqual(readConditions("\uFEFFsec_time,label\r\n0,start\r\n1,exp4\r\n2,reject\r\n3,control\r\n4,exp4"), ["control", "exp4"]);
 assert.deepEqual(readConditions('"sec_time","label","note"\n1,"exp2","comma, quote "" and\nnewline"\n'), ["exp2"]);
+assert.deepEqual(readConditions("stimIte1,Duration,Intertrial Interval,Condition\ntrigger,1,17,start\nstimuli/mi.wav,0.333,0.7,reject\nstimuli/momma.wav,0.475,0.7,exp3\nstimuli/mi.wav,0.333,0.7,control\n"), ["control", "exp3"]);
+assert.deepEqual(readConditions(" duration , INTERTRIAL INTERVAL , condition \n.333,7e-1,exp1"), ["exp1"]);
+assert.deepEqual(readConditions("Sec_Time,Condition\n0.25,exp2"), ["exp2"]);
 assert.throws(() => readConditions("time,label\n1,control"), /sec_time and label/);
+assert.throws(() => readConditions("Duration,Condition\n1,control"), /Intertrial Interval/);
+for (const value of ["", "-1", "NaN", "Infinity", "0x10"])
+  assert.throws(() => readConditions(`Duration,Intertrial Interval,Condition\n${value},0.7,exp1`), /nonnegative seconds/);
+assert.throws(() => readConditions("Duration,Intertrial Interval,Condition\n.333,-1,exp1"), /nonnegative seconds/);
+assert.throws(() => readConditions("sec_time,label\ninvalid,control"), /nonnegative seconds/);
+assert.throws(() => readConditions("sec_time,Duration,Intertrial Interval,Condition\ninvalid,.333,.7,control"), /nonnegative seconds/);
+assert.throws(() => readConditions("Duration,Intertrial Interval,label,Condition\n.333,.7,exp1,exp2"), /condition columns differ/);
 assert.throws(() => readConditions("sec_time,label,label\n1,control,exp1"), /repeated columns/);
 assert.throws(() => readConditions("sec_time,label\n1,new_condition"), /Unknown condition/);
 assert.throws(() => readConditions('sec_time,label\n1,"exp1'), /incomplete quoted/);

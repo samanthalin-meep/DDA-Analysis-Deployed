@@ -56,6 +56,7 @@ jobs:
           pnpm run build
           node tests/verify-engine.mjs
           node tests/verify-recording-input.mjs
+          node tests/verify-condition-timing.mjs
           node tests/verify-signal-labels.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

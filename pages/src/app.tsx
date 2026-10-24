@@ -2275,7 +2275,8 @@ function App() {
               </p>
               <p>
                 Prepared CSV files use a time column and labelled trial columns.
-                The conditions CSV needs sec_time and label columns.
+                For the conditions CSV, use sec_time and label columns, or
+                Duration, Intertrial Interval and Condition columns.
               </p>
               <p>
                 <a

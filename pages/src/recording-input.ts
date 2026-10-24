@@ -68,18 +68,44 @@ function csvRows(text: string): string[][] {
 }
 
 export function readConditions(text: string): string[] {
-  const [header = [], ...rows] = csvRows(text);
-  const labelIndex = header.indexOf("label");
-  if (labelIndex < 0 || !header.includes("sec_time"))
-    throw Error("The CSV needs sec_time and label columns.");
+  const [originalHeader = [], ...rows] = csvRows(text);
+  const header = originalHeader.map((name) => name.trim().toLowerCase());
+  const labelIndex = header.includes("label")
+    ? header.indexOf("label")
+    : header.indexOf("condition");
+  const durationTable = !header.includes("sec_time");
+  if (
+    labelIndex < 0 ||
+    (durationTable &&
+      (!header.includes("duration") || !header.includes("intertrial interval")))
+  )
+    throw Error("Use sec_time and label, or Duration, Intertrial Interval and Condition columns.");
   if (new Set(header).size !== header.length)
     throw Error("The CSV header has repeated columns.");
   if (!rows.length) throw Error("The conditions CSV has no events.");
   const present = new Set<string>();
-  for (const row of rows) {
+  for (const [index, row] of rows.entries()) {
     if (row.length !== header.length)
       throw Error("The CSV columns do not match its header.");
     const label = row[labelIndex];
+    if (
+      header.includes("label") &&
+      header.includes("condition") &&
+      row[header.indexOf("label")] !== row[header.indexOf("condition")]
+    )
+      throw Error(`The condition columns differ at CSV row ${index + 2}.`);
+    const timeColumns = durationTable
+      ? ["duration", "intertrial interval"]
+      : ["sec_time"];
+    for (const name of timeColumns) {
+      const value = row[header.indexOf(name)].trim();
+      if (
+        !/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:e[+-]?[0-9]+)?$/i.test(value) ||
+        !Number.isFinite(Number(value)) ||
+        Number(value) < 0
+      )
+        throw Error(`Invalid ${originalHeader[header.indexOf(name)]} at CSV row ${index + 2}. Use nonnegative seconds.`);
+    }
     if (
       !analysisConditions.includes(label) &&
       label !== "start" &&

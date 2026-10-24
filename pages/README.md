@@ -17,6 +17,17 @@ Prepared CSV files can also be opened directly. A session contains its prepared 
 
 In Visualize, select a condition and trial. Trial labels show the condition and source event ID. Average labels use electrode ranges; open the summary to see every electrode. CSV and session identifiers retain their full original names.
 
+## Conditions CSV
+
+Both input formats are accepted. Column names are case-insensitive.
+
+| Columns | Time values |
+| --- | --- |
+| `sec_time`, `label` | Absolute acquisition message times, in seconds. Each time must match the TXT log. |
+| `Duration`, `Intertrial Interval`, `Condition` | Stimulus duration and the gap after it, in seconds. Extra columns such as `stimIte1` are allowed. |
+
+Keep the duration table in presentation order, including the `start` and `reject` rows. Select the EDF and TXT from the same recording. The app checks each planned onset interval (`Duration + Intertrial Interval`) against the recorded trial interval within 100 ms. It uses the log's actual event times for EEG alignment; it does not accumulate durations to estimate EEG onsets. All logged Status pulses must match the EDF. Nontrial markers such as `net` are checked but do not become trials.
+
 ## Implementation
 
 - React interface with the original desktop colors, layout, tab structure, defaults, and graph semantics.
@@ -27,7 +38,7 @@ In Visualize, select a condition and trial. Trial labels show the condition and 
 - CSV import, pooled CT by condition, trial selection, continuous-channel ST/SY/DE/CT/CD and conditional variants, ICA, batch analysis, saved-result comparison, waveform display, annotations, heatmaps, local sessions, and exports.
 - Versioned application, worker, Python, and engine asset paths prevent stale code after updates.
 
-The browser edition supports the recording format checked by the original preparation recipe: continuous 1000 Hz HydroCel EDF with E1–E129 and Status, a matching acquisition log, and condition labels. The same event-time and physical-pulse alignment checks run before preparation. Pooled condition files require CT and at least two retained trials per selected condition, as in the desktop program.
+The browser edition supports the recording format checked by the original preparation recipe: continuous 1000 Hz HydroCel EDF with E1–E129 and Status, a matching acquisition log, and condition labels. Timestamp tables retain the original exact message-time check. Duration tables use the schedule check described above. Both use the recorded event times and exact physical-pulse alignment. Pooled condition files require CT and at least two retained trials per selected condition, as in the desktop program.
 
 This is a browser rebuild of the core workflow. Native operating-system dialogs, the Qt process itself, other desktop recording formats, streaming, remote compute integrations, and desktop-specific export/script options are not included. Connectivity currently displays the real variant rows as a heatmap; it does not recreate the native network-motif animation. Imported desktop `.ddalab` files can display their saved results; reopening their original disk paths requires selecting the source CSV. Browser sessions include prepared CSV data for transfer.
 
@@ -60,6 +71,7 @@ pnpm check
 pnpm build
 node tests/verify-engine.mjs
 node tests/verify-recording-input.mjs
+node tests/verify-condition-timing.mjs
 node tests/verify-signal-labels.mjs
 pnpm dev
 ```
