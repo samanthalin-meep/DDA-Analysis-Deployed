@@ -13,13 +13,13 @@ import { LinePlot, StackedWaveforms, waveformRows, Heatmap, savePlot, palette } 
 import { download, save, saved } from "./storage";
 import "./style.css";
 import { makeSession, type Source } from "./session";
-import { RecordingSteps, type AnalysisStep } from "./recording-steps";
 import { readConditions, readElectrodes } from "./recording-input";
 import { signalLabel, trialLabel } from "./signal-labels";
 import { SignalDetails } from "./signal-details";
 import { exportName } from "./export-names";
 
 type Note = { time: string; text: string };
+type AnalysisStep = "settings" | "results";
 type Ica = {
   name: string;
   channels: string[];
@@ -159,8 +159,7 @@ function App() {
   const [config, setConfig] = useState<Config>(defaultConfig),
     [expert, setExpert] = useState(false),
     [filePanel, setFilePanel] = useState(false);
-  const [analysisStep, setAnalysisStep] = useState<AnalysisStep>("settings"),
-    [analysisFocus, setAnalysisFocus] = useState<{ step: AnalysisStep } | null>(
+  const [analysisFocus, setAnalysisFocus] = useState<{ step: AnalysisStep } | null>(
       null,
     );
   const settingsPanel = useRef<HTMLFieldSetElement>(null),
@@ -337,12 +336,10 @@ function App() {
     setPreviewEnd(Math.min((d.rows - 1) / d.rate, 10));
     setPreview(null);
     setSearch("");
-    setAnalysisStep("settings");
   }
   function openAnalysis(step: AnalysisStep) {
     setPage("DDA");
     setSub("DDA");
-    setAnalysisStep(step);
     setAnalysisFocus({ step });
   }
   useEffect(() => {
@@ -1075,17 +1072,6 @@ function App() {
                 value={sub}
                 onChange={setSub}
               />
-              {sub === "DDA" && dataset && dataset.groups.length > 0 && (
-                <RecordingSteps
-                  dataset={dataset}
-                  step={analysisStep}
-                  busy={busy}
-                  hasResult={Boolean(result)}
-                  onPrepare={() => setUpload(true)}
-                  onSettings={() => openAnalysis("settings")}
-                  onResults={() => openAnalysis("results")}
-                />
-              )}
               {sub === "DDA" && (
                 <div className="dda-layout">
                   <fieldset

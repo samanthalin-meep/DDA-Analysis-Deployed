@@ -9,8 +9,8 @@ The deploy workflow runs on every push to `main`. A successful build publishes t
 1. Select **Upload recording**.
 2. Select the EDF, acquisition TXT, and conditions CSV from one recording.
 3. Enter a recording ID. All electrodes and analysis conditions are selected when their files load. Use the checkboxes or **Select all** and **Clear** at the bottom of each box to change the selection. **Average within each trial** is selected by default.
-4. Select **Run preparation**. The same page opens **Trials and settings** with the prepared data loaded.
-5. Select trials and DDA settings. Select **Run DDA**. The same page moves to **Results**. Use the step controls to return to settings.
+4. Select **Run preparation**. The same page focuses **DDA Configuration** with the prepared data loaded.
+5. Select trials and DDA settings. Select **Run DDA**. The same page focuses **Results**. Configuration and results remain on the same page.
 6. Download CSV, PNG, SVG, JSON, or a `.ddalab` session.
 
 Prepared CSV files can also be opened directly. A session contains its prepared data, settings, annotations, and selected result. Browser storage can retain prepared files and results across reloads. Raw EDF/TXT/conditions files are removed from worker memory after preparation. No recording is sent over the network.
