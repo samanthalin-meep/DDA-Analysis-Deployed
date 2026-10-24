@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 import numpy as np
-from preparation import read_condition_rows, read_events, read_edf
+from preparation import read_condition_rows, read_events, read_edf, trial_samples
 
 
 EVENTS = [(0.215, 0.200, 'STRT'), (1.317, 1.300, 'stim'),
@@ -87,14 +87,24 @@ class ConditionTiming(unittest.TestCase):
         self.assertEqual(physical, EVENTS)
 
     def test_seconds_timestamps_still_require_an_exact_match(self):
-        changed = seconds_table().replace('1.317,control', '1.319,control')
-        with self.assertRaisesRegex(ValueError, 'CSV times do not match'):
-            read_events(log(), changed)
+        for changed in [seconds_table().replace('1.317,control', '1.319,control'),
+                        seconds_table().replace('0.215,start', '0.216,start')]:
+            with self.subTest(csv=changed), self.assertRaisesRegex(ValueError, 'CSV times do not match'):
+                read_events(log(), changed)
 
     def test_duration_schedule_mismatch_is_rejected(self):
-        changed = duration_table().replace('trigger,.4,.7,start', 'trigger,2,.7,start')
+        changed = duration_table().replace('stimuli/mi.wav,.45,.7,control', 'stimuli/mi.wav,2,.7,control')
         with self.assertRaisesRegex(ValueError, 'duration table does not match the TXT timing'):
             read_events(log(), changed)
+
+    def test_start_marker_wait_does_not_override_recorded_onsets(self):
+        changed = duration_table().replace('trigger,.4,.7,start', 'trigger,1,17,start')
+        self.assertEqual(read_events(log(), changed), read_events(log(), seconds_table()))
+        # Only the initial marker gets this exception. Stimulus intervals keep
+        # the same 100 ms limit, including after a different startup pause.
+        invalid = changed.replace('stimuli/mi.wav,.45,.7,control', 'stimuli/mi.wav,.6,.7,control')
+        with self.assertRaisesRegex(ValueError, 'CSV row 3'):
+            read_events(log(), invalid)
 
     def test_event_counts_and_trigger_labels_are_checked(self):
         for changed in [duration_table().replace('stimuli/ma.wav,.333,.7,exp1\r\n', ''),
@@ -123,6 +133,26 @@ class ConditionTiming(unittest.TestCase):
                 edf(path, pulses)
                 with self.subTest(pulses=pulses), self.assertRaisesRegex(ValueError, 'Status pulses do not match'):
                     read_edf(path, length, trials, physical_events=physical)
+
+    def test_zero_based_export_requires_one_exact_offset_for_every_marker(self):
+        trials, _, length, physical = read_events(log(), duration_table())
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'zero-based.edf'
+            edf(path, [201, 1301, 2451, 3901])
+            _, indices = read_edf(path, length, trials, physical_events=physical)
+            np.testing.assert_array_equal(indices, [201, 1301, 2451])
+            for pulses in [[202, 1302, 2452, 3902], [201, 1301, 2450, 3901], [201, 1301, 2451]]:
+                edf(path, pulses)
+                with self.subTest(pulses=pulses), self.assertRaisesRegex(ValueError, 'Status pulses do not match'):
+                    read_edf(path, length, trials, physical_events=physical)
+
+    def test_missing_and_ambiguous_markers_are_rejected(self):
+        trials, _, _, physical = read_events(log(), duration_table())
+        with self.assertRaisesRegex(ValueError, 'Status channel has no event markers'):
+            trial_samples(np.zeros(4200), trials, physical)
+        # Two equally valid conventions must not silently choose one.
+        with self.assertRaisesRegex(ValueError, 'Status pulses do not match'):
+            trial_samples(np.array([1,0,1,0]), [(0,.001,'STRT'), (0,.003,'stim')])
 
 
 if __name__ == '__main__':

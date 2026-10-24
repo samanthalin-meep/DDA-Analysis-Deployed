@@ -12,6 +12,7 @@ export type Dataset = {
   electrodes?: string[];
   preparation?: {
     recording?: string;
+    event_sample_offset?: number;
     bad_channels: string[];
     epochs: number;
     global_sd: number;

@@ -73,6 +73,11 @@ def read_events(log_text, csv_text):
                 'The CSV labels do not match the acquisition event codes.')
     if duration_table:
         for index, row in enumerate(rows[:-1]):
+            # STRT marks acquisition startup, not a stimulus with a fixed wait.
+            # Some acquisition runs begin stimuli before the table's planned
+            # startup pause ends. Keep the actual TXT/EDF marker times.
+            if index == 0 and row['label'] == 'start':
+                continue
             expected = row['duration'] + row['intertrial interval']
             actual = events[index+1][1] - events[index][1]
             require(expected > 0 and abs(actual-expected) <= SCHEDULE_TOLERANCE_SECONDS + 1e-8,
@@ -86,14 +91,25 @@ def read_events(log_text, csv_text):
 
 def trial_samples(status, events, physical_events=None):
     expected = np.array([e[1]*1000 for e in (physical_events if physical_events is not None else events)])
-    ix = np.rint(expected).astype(int)-1
-    require(np.all(ix >= 0) and np.all(ix < len(status)) and np.all(np.diff(ix)>1), 'The event samples are invalid.')
-    # Verify every logged event, including system markers omitted from trial rows.
-    pulse = status[ix[0]]
-    found = np.flatnonzero(status == pulse)+1
-    require(len(found) == len(expected) and np.max(np.abs(found-expected)) < 1e-6,
+    rounded = np.rint(expected).astype(int)
+    require(len(status) and len(expected) and np.all(rounded >= 0) and
+            np.all(rounded <= len(status)) and np.all(np.diff(rounded)>1), 'The event samples are invalid.')
+    require(not np.all(status == status[0]),
+            'The EDF Status channel has no event markers. Re-export the EDF with markers.')
+    # EDF exports use either one-based sample latencies or zero-based times.
+    # Accept a convention only when every physical marker proves the same exact
+    # mapping. Never accept per-event shifts, extra markers, or missing markers.
+    candidates = []
+    for offset in (0,1):
+        ix = rounded+offset-1
+        if np.any(ix < 0) or np.any(ix >= len(status)): continue
+        found = np.flatnonzero(status == status[ix[0]])+1
+        if len(found) == len(expected) and np.max(np.abs(found-(expected+offset))) < 1e-6:
+            candidates.append((offset,found))
+    require(len(candidates) == 1,
             'The physical Status pulses do not match the TXT events.')
-    indices = np.rint([e[1]*1000 for e in events]).astype(int)
+    offset,found = candidates[0]
+    indices = np.rint([e[1]*1000 for e in events]).astype(int)+offset
     require(np.all(np.isin(indices, found)), 'A trial does not match a physical Status pulse.')
     return indices
 
@@ -256,7 +272,7 @@ def prepare(edf_path, log_text, csv_text, coordinates, electrodes=None, conditio
         outputs[0]['electrode_data'] = np.ascontiguousarray(epochs[ci][:,:,keep], dtype=np.float32)
         outputs[0]['electrodes'] = list(electrodes)
     progress('Preparation complete',1,1)
-    return outputs, counts, {'recording':recording, 'bad_channels':['E'+str(i+1) for i in bad], 'epochs':len(events),'global_sd':float(sd), 'rejected_events':(np.flatnonzero(flags)+1).tolist()}
+    return outputs, counts, {'recording':recording, 'event_sample_offset':int(pulse_indices[0]-round(events[0][1]*1000)), 'bad_channels':['E'+str(i+1) for i in bad], 'epochs':len(events),'global_sd':float(sd), 'rejected_events':(np.flatnonzero(flags)+1).tolist()}
 
 
 def prepared_csv(output):

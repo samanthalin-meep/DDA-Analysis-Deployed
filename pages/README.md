@@ -30,7 +30,9 @@ Both input formats are accepted. Column names are case-insensitive.
 | `sec_time`, `label` | Absolute acquisition message times, in seconds. Each time must match the TXT log. |
 | `Duration`, `Intertrial Interval`, `Condition` | Stimulus duration and the gap after it, in seconds. Extra columns such as `stimIte1` are allowed. |
 
-Keep the duration table in presentation order, including the `start` and `reject` rows. Select the EDF and TXT from the same recording. The app checks each planned onset interval (`Duration + Intertrial Interval`) against the recorded trial interval within 100 ms. It uses the log's actual event times for EEG alignment; it does not accumulate durations to estimate EEG onsets. All logged Status pulses must match the EDF. Nontrial markers such as `net` are checked but do not become trials.
+Keep the duration table in presentation order, including the `start` and `reject` rows. Select the EDF and TXT from the same recording. The app checks stimulus-to-stimulus intervals (`Duration + Intertrial Interval`) against the recorded intervals within 100 ms. The planned startup wait can differ from the recorded start-to-first-stimulus interval. The app uses the log's actual event times and physical EDF marker positions for EEG alignment; it does not accumulate durations to estimate EEG onsets. Every logged Status pulse, including the initial marker, must match under one exact sample-index convention: one-based sample latencies or zero-based export times. Missing markers and inconsistent shifts remain errors. Nontrial markers such as `net` are checked but do not become trials.
+
+See [the change log](CHANGELOG.md) for the I3 startup-delay check, sample-index handling, and local marker repair.
 
 ## Implementation
 
