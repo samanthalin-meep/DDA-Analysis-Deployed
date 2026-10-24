@@ -12,6 +12,7 @@ import { LinePlot, Heatmap, savePlot, palette } from "./plots";
 import { download, save, saved } from "./storage";
 import "./style.css";
 import { makeSession, type Source } from "./session";
+import { RecordingSteps, type AnalysisStep } from "./recording-steps";
 
 type Note = { time: string; text: string };
 type Ica = {
@@ -149,6 +150,13 @@ function App() {
   const [config, setConfig] = useState<Config>(defaultConfig),
     [expert, setExpert] = useState(false),
     [filePanel, setFilePanel] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState<AnalysisStep>("settings"),
+    [analysisFocus, setAnalysisFocus] = useState<{ step: AnalysisStep } | null>(
+      null,
+    );
+  const settingsPanel = useRef<HTMLFieldSetElement>(null),
+    settingsScroll = useRef<HTMLDivElement>(null),
+    resultsPanel = useRef<HTMLFieldSetElement>(null);
   const [results, setResults] = useState<Result[]>([]),
     [resultId, setResultId] = useState(""),
     [variantId, setVariantId] = useState("CT"),
@@ -295,13 +303,33 @@ function App() {
       end: (d.rows - 1) / d.rate,
       indices: d.columns.map((_, i) => i),
       variants: d.groups.length ? ["CT"] : c.variants,
+      pairs: d.groups.length ? undefined : c.pairs,
     }));
+    if (d.groups.length) setPairText("");
     setPreviewIndices([0]);
     setPreviewStart(0);
     setPreviewEnd(Math.min((d.rows - 1) / d.rate, 10));
     setPreview(null);
     setSearch("");
+    setAnalysisStep("settings");
   }
+  function openAnalysis(step: AnalysisStep) {
+    setPage("DDA");
+    setSub("DDA");
+    setAnalysisStep(step);
+    setAnalysisFocus({ step });
+  }
+  useEffect(() => {
+    if (!analysisFocus) return;
+    const panel =
+      analysisFocus.step === "settings"
+        ? settingsPanel.current
+        : resultsPanel.current;
+    if (analysisFocus.step === "settings")
+      settingsScroll.current?.scrollTo({ top: 0 });
+    panel?.focus({ preventScroll: true });
+    panel?.scrollIntoView({ block: "nearest" });
+  }, [analysisFocus]);
   async function persist() {
     persistSources.current = [...sources.current.values()];
     if (remember)
@@ -518,8 +546,8 @@ function App() {
       await persist();
       setUpload(false);
       setUploadFiles({});
-      setPage("DDA");
-      setSub("DDA");
+      setResultId("");
+      openAnalysis("settings");
       notify(
         `Prepared ${outputs.length} file${outputs.length === 1 ? "" : "s"}. ${outputs[0].columns.length} trials retained.`,
       );
@@ -553,8 +581,7 @@ function App() {
       setResults((old) => [r, ...old].slice(0, 100));
       setResultId(r.id);
       setVariantId(r.variants[0].id);
-      setPage("DDA");
-      setSub("DDA");
+      openAnalysis("results");
       notify(
         `DDA completed: ${r.file_name} · ${r.variants.map((v) => v.id).join(", ")}`,
       );
@@ -965,11 +992,27 @@ function App() {
                 value={sub}
                 onChange={setSub}
               />
+              {sub === "DDA" && dataset && dataset.groups.length > 0 && (
+                <RecordingSteps
+                  dataset={dataset}
+                  step={analysisStep}
+                  busy={busy}
+                  hasResult={Boolean(result)}
+                  onPrepare={() => setUpload(true)}
+                  onSettings={() => openAnalysis("settings")}
+                  onResults={() => openAnalysis("results")}
+                />
+              )}
               {sub === "DDA" && (
                 <div className="dda-layout">
-                  <fieldset className="configuration">
+                  <fieldset
+                    className="configuration"
+                    ref={settingsPanel}
+                    tabIndex={-1}
+                    aria-label="DDA settings and trial selection"
+                  >
                     <legend>DDA Configuration</legend>
-                    <div className="config-scroll">
+                    <div className="config-scroll" ref={settingsScroll}>
                       <fieldset>
                         <legend>Variants</legend>
                         <div className="checks">
@@ -1308,7 +1351,12 @@ function App() {
                       </button>
                     </div>
                   </fieldset>
-                  <fieldset className="results">
+                  <fieldset
+                    className="results"
+                    ref={resultsPanel}
+                    tabIndex={-1}
+                    aria-label="DDA results"
+                  >
                     <legend>Results</legend>
                     <div className="result-head">
                       <label>
@@ -1426,7 +1474,13 @@ function App() {
                         )}
                       </>
                     ) : (
-                      <Empty text="Run DDA to show results." />
+                      <Empty
+                        text={
+                          dataset
+                            ? "Select trials and settings. Then select Run DDA."
+                            : "Open a data file."
+                        }
+                      />
                     )}
                   </fieldset>
                 </div>
