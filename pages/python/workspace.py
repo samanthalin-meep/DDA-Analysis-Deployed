@@ -201,7 +201,9 @@ def analysis_spec(did,config_json):
     require(math.isfinite(event_offset),'Use a finite event onset in seconds.')
     centers=[float(d['time'][start])+(dm+max(delays[:nt])+(wl-1)/2+k*step)/d['rate']-event_offset for k in range(count)]
     return json.dumps({'groups':groups,'start':start,'end':end,'centers':centers,'rate':d['rate'],
-                       'event_offset_seconds':event_offset,'analysis_electrodes':analysis_electrodes})
+                       'event_offset_seconds':event_offset,'analysis_electrodes':analysis_electrodes,
+                       'epoch_time_bounds_seconds':[float(d['time'][0])-event_offset,
+                                                    float(d['time'][-1])+1/d['rate']-event_offset]})
 
 def analysis_matrix(did,indices_json,start,end,electrode=None):
     d=datasets[did];indices=json.loads(indices_json)

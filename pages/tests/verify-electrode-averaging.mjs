@@ -37,6 +37,9 @@ try {
   const result=await rpc('run',{id:dataset.id,name:dataset.name,columns:dataset.columns,config});
   assert.equal(result.electrode_results.length,2);
   assert.equal(result.config.electrodeAveraging,'coefficients');
+  assert(Math.abs(result.epoch_time_bounds_seconds[0]+.2)<1e-12);
+  assert(Math.abs(result.epoch_time_bounds_seconds[1]-.8)<1e-12);
+  assert.equal(result.sampling_rate_hz,250);
   await init({module_or_path:await readFile(new URL('../public/engine/dda_bg.wasm',import.meta.url))});
   const direct=[];
   for(let e=0;e<2;e++) {

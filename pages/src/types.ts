@@ -58,6 +58,8 @@ export type Result = {
   created_at: string;
   variants: Variant[];
   window_centers_seconds: number[];
+  epoch_time_bounds_seconds?: [number, number];
+  sampling_rate_hz?: number;
   trial_groups: Group[];
   config: Config;
   engine: string;

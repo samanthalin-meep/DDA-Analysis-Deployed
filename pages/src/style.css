@@ -431,7 +431,7 @@ legend {
 .results {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
 }
 .result-head {
   display: flex;

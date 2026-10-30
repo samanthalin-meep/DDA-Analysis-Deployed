@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { download } from "./storage";
 import { fitLabel, signalLabel } from "./signal-labels";
+import { nearestTimeIndex } from "./result-time-axis";
 export const palette = [
   "#3288ff",
   "#ff3333",
@@ -23,6 +24,8 @@ export function LinePlot({
   title = "",
   ylabel = "a1",
   id = "result-plot",
+  timeUnit = "s",
+  timeBounds,
 }: {
   time: number[];
   values: number[][];
@@ -30,6 +33,8 @@ export function LinePlot({
   title?: string;
   ylabel?: string;
   id?: string;
+  timeUnit?: "s" | "ms";
+  timeBounds?: [number, number];
 }) {
   const [hidden, setHidden] = useState<number[]>([]);
   const [range, setRange] = useState<[number, number] | null>(null);
@@ -58,17 +63,16 @@ export function LinePlot({
     bottom = 55,
     pw = w - left - right,
     ph = h - top - bottom;
-  const xmin = time[first] ?? 0,
-    xmax = time[last] ?? 1;
+  const xmin = (!range && timeBounds ? timeBounds[0] : time[first]) ?? 0,
+    xmax = (!range && timeBounds ? timeBounds[1] : time[last]) ?? 1;
+  const displayTime = (seconds: number) => Math.abs(seconds) < 1e-10 ? 0 : seconds * (timeUnit === "ms" ? 1000 : 1);
   const x = (t: number) => left + ((t - xmin) / (xmax - xmin || 1)) * pw,
     y = (v: number) => top + ((ymax - v) / (ymax - ymin)) * ph;
   const at = (e: React.PointerEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - box.left) / box.width) * w;
-    return Math.max(
-      first,
-      Math.min(last, Math.round(first + ((px - left) / pw) * (last - first))),
-    );
+    const target = xmin + ((px - left) / pw) * (xmax - xmin);
+    return nearestTimeIndex(time, target, first, last);
   };
   return (
     <div className="plot-wrap">
@@ -136,7 +140,8 @@ export function LinePlot({
                 {fmt(ymax - ((ymax - ymin) * i) / 5)}
               </text>
               <text x={xx} y={top + ph + 19} textAnchor="middle">
-                {fmt(xmin + ((xmax - xmin) * i) / 5)}
+                {Math.abs(xmin + ((xmax - xmin) * i) / 5) < 1e-10 && timeUnit === "ms"
+                  ? "0 (event)" : fmt(displayTime(xmin + ((xmax - xmin) * i) / 5))}
               </text>
             </g>
           );
@@ -149,7 +154,7 @@ export function LinePlot({
         {xmin <= 0 && xmax >= 0 && (
           <line x1={x(0)} x2={x(0)} y1={top} y2={top + ph}
             stroke="var(--muted)" strokeDasharray="4 4">
-            <title>Event onset (0 s)</title>
+            <title>{`Event onset (0 ${timeUnit})`}</title>
           </line>
         )}
         <g clipPath={`url(#${id}-clip)`}>
@@ -176,7 +181,7 @@ export function LinePlot({
           fill="var(--muted)"
           fontSize="12"
         >
-          {ylabel === "a1"
+          {timeUnit === "ms" ? "Time relative to event (ms; fitted-window center)" : ylabel === "a1"
             ? "Time relative to event (s; fitted center)"
             : "Time (s)"}
         </text>
@@ -242,7 +247,7 @@ export function LinePlot({
               stroke="var(--border)"
             />
             <text x={left + 17} y={top + 24} fill="var(--text)" fontSize="11">
-              {fmt(time[hover])} s
+              {fmt(displayTime(time[hover]))} {timeUnit}
               {values.slice(0, 8).map((row, i) => (
                 <tspan
                   key={i}
@@ -352,17 +357,26 @@ export function Heatmap({
   names,
   time,
   scheme = "Viridis",
+  timeUnit = "s",
+  timeBounds,
 }: {
   values: number[][];
   names: string[];
   time: number[];
   scheme?: string;
+  timeUnit?: "s" | "ms";
+  timeBounds?: [number, number];
 }) {
   const visible = values.flat().filter(Number.isFinite),
     lo = Math.min(...visible),
     hi = Math.max(...visible);
   const cols = Math.max(1, values[0]?.length || 1),
     rh = Math.max(20, Math.min(55, 380 / values.length));
+  const xmin = timeBounds?.[0] ?? time[0] ?? 0,
+    xmax = timeBounds?.[1] ?? time.at(-1) ?? 1;
+  const x = (t: number) => 140 + (t - xmin) / (xmax - xmin || 1) * 850;
+  const displayTime = (t: number) => Math.abs(t) < 1e-10 ? 0 : t * (timeUnit === "ms" ? 1000 : 1);
+  const cellStep = time.length > 1 ? time[1] - time[0] : (xmax - xmin || 1) / cols;
   return (
     <div className="heatmap-scroll">
       <svg
@@ -372,6 +386,7 @@ export function Heatmap({
         aria-label="Analysis heatmap"
       >
         <rect width="1050" height="100%" fill="var(--surface)" />
+        <defs><clipPath id="heatmap-time-clip"><rect x="140" y="30" width="850" height={values.length * rh} /></clipPath></defs>
         {values.map((row, i) => (
           <g key={i}>
             <text
@@ -384,23 +399,27 @@ export function Heatmap({
               {fitLabel(signalLabel(names[i] || ""), 22)}
               <title>{names[i]}</title>
             </text>
-            {row.map((v, j) => (
+            <g clipPath="url(#heatmap-time-clip)">{row.map((v, j) => {
+              const center = time[j] ?? 0;
+              const left = ((time[j - 1] ?? center - cellStep) + center) / 2;
+              const right = (center + (time[j + 1] ?? center + cellStep)) / 2;
+              return (
               <rect
                 key={j}
-                x={140 + (j * 850) / cols}
+                x={x(left)}
                 y={30 + i * rh}
-                width={850 / cols + 0.2}
+                width={Math.max(0, x(right) - x(left)) + 0.2}
                 height={rh + 0.2}
                 fill={color((v - lo) / (hi - lo || 1), scheme)}
               >
                 <title>
-                  {signalLabel(names[i] || "")} · {fmt(time[j] ?? j)} s · {fmt(v)}
+                  {`${signalLabel(names[i] || "")} · ${fmt(displayTime(time[j] ?? j))} ${timeUnit} · ${fmt(v)}`}
                 </title>
               </rect>
-            ))}
+            );})}</g>
           </g>
         ))}
-        {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
+        {Array.from({length:6},(_,i)=>i/5).map((t, i) => (
           <text
             key={i}
             x={140 + t * 850}
@@ -409,7 +428,7 @@ export function Heatmap({
             fill="var(--muted)"
             fontSize="12"
           >
-            {fmt(time[Math.round(t * (cols - 1))] ?? 0)}
+            {Math.abs(xmin + t * (xmax - xmin)) < 1e-10 && timeUnit === "ms" ? "0 (event)" : fmt(displayTime(xmin + t * (xmax - xmin)))}
           </text>
         ))}
         <text
@@ -419,8 +438,10 @@ export function Heatmap({
           fill="var(--muted)"
           fontSize="12"
         >
-          Time relative to event (s)
+          Time relative to event ({timeUnit})
         </text>
+        {xmin <= 0 && xmax >= 0 && <line x1={x(0)} x2={x(0)} y1="30" y2={30 + values.length * rh}
+          stroke="var(--text)" strokeDasharray="4 4"><title>{`Event onset (0 ${timeUnit})`}</title></line>}
       </svg>
       <div className="scale">
         <span>{fmt(lo)}</span>

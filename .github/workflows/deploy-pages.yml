@@ -62,6 +62,7 @@ jobs:
           node tests/verify-event-timing.mjs
           node tests/verify-analysis-worker.mjs
           node tests/verify-electrode-averaging.mjs
+          node tests/verify-time-axis.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -23,6 +23,8 @@ The new averaging mode uses the retained individual signals, not the prepared CS
 
 The practice defaults remain exploratory: 250 Hz prepared data, 50 fitted samples (200 ms), 10-sample steps (40 ms), delays of 7 and 10 samples (28/40 ms), and model terms `[1,2,10]`. Delay and derivative context expands each input block to 68 samples. The first fitted center is −46 ms but its target interval spans −144 to +52 ms; it is not a purely pre-event estimate. Prepared clips place the event at 0.2 s from file start. A manually entered event onset is honored and recorded. Study-specific window, model, artifact, electrode and aggregation choices require protocol confirmation.
 
+Pooled-trial graphs and heatmaps show the full epoch in milliseconds, normally **−200 → 0 (event) → +800 ms**. Fitted coefficients remain at their actual window centers; the display leaves empty margins rather than inventing values at the epoch edges. Graph exports use the same axis. CSV times remain explicitly in seconds. Manual event-offset overrides retain their true relative-time coordinates.
+
 Downloads start with the Recording ID, such as `I1_R4_prepared.csv`, `I1_R4_results_CT.csv`, and `I1_R4_graph.png`. All PNG and SVG graphs use `[Recording ID]_graph` without additional suffixes. Older imported files use their source filename when no Recording ID was saved. Dataset column names and analysis identifiers retain their full original values.
 
 ## Conditions CSV
@@ -85,6 +87,7 @@ node tests/verify-waveforms.mjs
 node tests/verify-event-timing.mjs
 node tests/verify-analysis-worker.mjs
 node tests/verify-electrode-averaging.mjs
+node tests/verify-time-axis.mjs
 pnpm dev
 ```
 

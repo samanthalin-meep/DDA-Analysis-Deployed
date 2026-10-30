@@ -41,6 +41,9 @@ assert.deepEqual(corrected.timing_correction, {
   original_event_offset_seconds: 1.2, corrected_event_offset_seconds: 0.2,
 });
 assert.strictEqual(correctPreparedResultTiming(corrected), corrected, "A result is shifted only once.");
+const withBounds = correctPreparedResultTiming({ ...original, epoch_time_bounds_seconds: [-1.2, -0.2] });
+assert(Math.abs(withBounds.epoch_time_bounds_seconds[0] + 0.2) < 1e-12);
+assert(Math.abs(withBounds.epoch_time_bounds_seconds[1] - 0.8) < 1e-12);
 for (const offset of [0, 0.2, 0.35]) {
   const custom = { ...original, config: { ...config, eventOffset: offset } };
   assert.strictEqual(correctPreparedResultTiming(custom), custom, "Other saved offsets are preserved.");

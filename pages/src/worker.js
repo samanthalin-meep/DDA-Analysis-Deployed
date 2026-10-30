@@ -104,6 +104,7 @@ async function execute(action,payload) {
     const variants=electrode_results.length?averageElectrodeVariants(electrode_results):fitElectrode(null,0,1);
     return {id:crypto.randomUUID(),file_name:payload.name,created_at:new Date().toISOString(),variants,
       window_centers_seconds:spec.centers,trial_groups:spec.groups[0]?.condition?spec.groups:[],config:cfg,
+      epoch_time_bounds_seconds:spec.epoch_time_bounds_seconds,sampling_rate_hz:spec.rate,
       ...(electrode_results.length?{electrode_results}:{}),
       engine:'Original dda-rs 0.2.0 / WebAssembly',preparation:payload.preparation||null};
   }

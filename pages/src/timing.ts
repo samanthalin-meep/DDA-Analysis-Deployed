@@ -31,6 +31,11 @@ export function correctPreparedResultTiming(result: Result, preparation?: Prepar
     window_centers_seconds: result.window_centers_seconds.map(
       (time) => time + (result.config.eventOffset - offset),
     ),
+    ...(result.epoch_time_bounds_seconds ? {
+      epoch_time_bounds_seconds: result.epoch_time_bounds_seconds.map(
+        (time) => time + (result.config.eventOffset - offset),
+      ) as [number, number],
+    } : {}),
     timing_correction: {
       original_event_offset_seconds: result.config.eventOffset,
       corrected_event_offset_seconds: offset,

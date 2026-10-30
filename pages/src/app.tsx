@@ -19,6 +19,7 @@ import { SignalDetails } from "./signal-details";
 import { exportName } from "./export-names";
 import { configForPreparedData, correctPreparedResultTiming, preparedEventOffset } from "./timing";
 import { AnalysisWorkerClient } from "./analysis-worker";
+import { resultTimeAxis } from "./result-time-axis";
 
 type Note = { time: string; text: string };
 type AnalysisStep = "settings" | "results";
@@ -1512,6 +1513,7 @@ function App() {
                         {view === "Graph" ? (
                           <LinePlot
                             key={`${result.id}:${variant.id}`}
+                            {...resultTimeAxis(result)}
                             time={result.window_centers_seconds}
                             values={variant.matrix}
                             names={variant.row_labels}
@@ -1526,6 +1528,7 @@ function App() {
                           />
                         ) : view === "Heatmap" ? (
                           <Heatmap
+                            {...resultTimeAxis(result)}
                             values={variant.matrix}
                             names={variant.row_labels}
                             time={result.window_centers_seconds}
@@ -1855,6 +1858,7 @@ function App() {
                         {variant.id} · {signalLabel(variant.label)}
                       </p>
                       <Heatmap
+                        {...resultTimeAxis(result)}
                         values={variant.matrix}
                         names={variant.row_labels}
                         time={result.window_centers_seconds}
@@ -1917,6 +1921,8 @@ function App() {
                       <>
                         <LinePlot
                           id="compare-plot"
+                          key={`${a.id}:${b.id}`}
+                          {...resultTimeAxis(a)}
                           time={a.window_centers_seconds}
                           values={
                             same ? [...va.matrix, ...vb.matrix] : va.matrix
