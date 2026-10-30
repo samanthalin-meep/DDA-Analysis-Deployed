@@ -31,6 +31,7 @@ export type Config = {
   start: number;
   end: number;
   eventOffset: number;
+  eventOffsetManual?: boolean;
   delays: number[];
   terms: number[];
   dimension: number;

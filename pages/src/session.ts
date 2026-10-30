@@ -20,6 +20,7 @@ export function desktopConfig(
     variantIds: config.variants,
     ctPooled: config.variants.includes("CT") && !config.pairs?.length,
     eventOffsetSeconds: config.eventOffset,
+    eventOffsetManual: Boolean(config.eventOffsetManual),
     windowLengthSamples: config.window,
     windowStepSamples: config.step,
     delays: config.delays,
@@ -59,6 +60,7 @@ export function makeSession(
   const reproduction = {
     ct_pooled: rc.variants.includes("CT") && !rc.pairs?.length,
     event_offset_seconds: rc.eventOffset,
+    event_offset_manual: Boolean(rc.eventOffsetManual),
     expert_mode: expert,
     variant_ids: rc.variants,
     selected_channel_indices: rc.indices,

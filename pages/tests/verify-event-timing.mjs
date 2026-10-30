@@ -18,6 +18,11 @@ const config = { ...defaultConfig, eventOffset: 1.2, indices: [0, 1] };
 assert.equal(configForPreparedData(config, preparation).eventOffset, 0.2);
 assert.equal(configForPreparedData(config, { ...preparation, event_offset_seconds: 0.35 }).eventOffset, 0.35);
 assert.strictEqual(configForPreparedData(config), config, "Custom data keeps its chosen offset.");
+for (const offset of [0, 0.35, 1.2]) {
+  const manual = { ...config, eventOffset: offset, eventOffsetManual: true };
+  assert.strictEqual(configForPreparedData(manual, preparation), manual,
+    "An entered onset takes precedence over preparation metadata.");
+}
 const original = {
   id: "old-result", file_name: "DDA_Timing.csv", created_at: "2026-10-29T00:00:00Z",
   config, preparation, engine: "Original dda-rs",
@@ -45,6 +50,9 @@ assert.strictEqual(correctPreparedResultTiming(unknown), unknown, "Do not infer 
 assert.equal(correctPreparedResultTiming(unknown, preparation).config.eventOffset, 0.2);
 const differentRecipe = { ...original, preparation: { ...preparation, event_offset_seconds: 1.2 } };
 assert.strictEqual(correctPreparedResultTiming(differentRecipe), differentRecipe);
+const manualResult = { ...original, config: { ...config, eventOffsetManual: true } };
+assert.strictEqual(correctPreparedResultTiming(manualResult), manualResult,
+  "An intentional 1.2 s onset must never be migrated back to 0.2 s.");
 const columns = ["E1__control__trial_event000001", "E1__control__trial_event000002"];
 const dataset = { id: "timing", name: original.file_name, columns, preparation };
 const snapshot = JSON.parse(JSON.stringify(makeSession([dataset], dataset,
@@ -54,6 +62,14 @@ assert.equal(snapshot.ddaConfig.eventOffsetSeconds, 0.2);
 assert.deepEqual(snapshot.browser.result.variants, original.variants);
 assert.deepEqual(snapshot.browser.result.timing_correction, corrected.timing_correction);
 assert.strictEqual(correctPreparedResultTiming(snapshot.browser.result), snapshot.browser.result);
+const manualSnapshot = JSON.parse(JSON.stringify(makeSession([dataset], dataset,
+  manualResult.config, manualResult, [], [], false)));
+assert.equal(manualSnapshot.ddaConfig.eventOffsetSeconds, 1.2);
+assert.equal(manualSnapshot.ddaConfig.eventOffsetManual, true);
+assert.equal(manualSnapshot.ddaResult.reproduction.event_offset_seconds, 1.2);
+assert.equal(manualSnapshot.ddaResult.reproduction.event_offset_manual, true);
+assert.equal(manualSnapshot.browser.config.eventOffsetManual, true);
+assert.strictEqual(correctPreparedResultTiming(manualSnapshot.browser.result), manualSnapshot.browser.result);
 console.log("PASS: defaults, prepared-file settings, legacy results, and session round trips preserve coefficients and correct timing once.");
 
 const py = await loadPyodide({ indexURL: fileURLToPath(new URL("../public/runtime/", import.meta.url)) });

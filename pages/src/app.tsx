@@ -82,14 +82,12 @@ function NumberField({
   onChange,
   min,
   step = 1,
-  disabled = false,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
   step?: number;
-  disabled?: boolean;
 }) {
   return (
     <label className="field">
@@ -99,7 +97,6 @@ function NumberField({
         min={min}
         step={step}
         value={value}
-        disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </label>
@@ -452,7 +449,11 @@ function App() {
     }
   }, [active, page, previewIndices.join(","), previewStart, previewEnd, previewMode, previewElectrodes.join(",")]);
   const change = (key: keyof Config, value: any) =>
-    setConfig((c) => ({ ...c, [key]: value }));
+    setConfig((c) => ({
+      ...c,
+      [key]: value,
+      ...(key === "eventOffset" ? { eventOffsetManual: true } : {}),
+    }));
   function toggleIndex(i: number) {
     change(
       "indices",
@@ -750,9 +751,11 @@ function App() {
               window: p.ddaConfig.windowLengthSamples || 50,
               step: p.ddaConfig.windowStepSamples || 10,
               eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? p.ddaConfig.eventOffsetSeconds ?? defaultConfig.eventOffset,
+              eventOffsetManual: r.reproduction?.event_offset_manual ?? r.config?.eventOffsetManual ?? p.ddaConfig.eventOffsetManual ?? false,
             }
           : { ...defaultConfig, ...r.config,
-              eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? defaultConfig.eventOffset },
+              eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? defaultConfig.eventOffset,
+              eventOffsetManual: r.reproduction?.event_offset_manual ?? r.config?.eventOffsetManual ?? false },
         engine: r.engine_label || r.engineLabel || "DDALAB desktop",
         variants: r.variants.map((v: any) => ({
           ...v,
@@ -782,6 +785,7 @@ function App() {
         window: c.windowLengthSamples || 50,
         step: c.windowStepSamples || 10,
         eventOffset: c.eventOffsetSeconds ?? defaultConfig.eventOffset,
+        eventOffsetManual: c.eventOffsetManual ?? false,
         delays: c.delays || [7, 10],
         terms: c.modelTerms || [1, 2, 10],
       }, dataset?.preparation));
@@ -1249,11 +1253,10 @@ function App() {
                         label="Event onset from file start (s)"
                         value={config.eventOffset}
                         step={0.001}
-                        disabled={preparedEventOffset(dataset?.preparation) !== undefined}
                         onChange={(v) => change("eventOffset", v)}
                       />
                       {preparedEventOffset(dataset?.preparation) !== undefined && (
-                        <p className="muted compact">Event timing is set by recording preparation.</p>
+                        <p className="muted compact">Prepared event onset: {preparedEventOffset(dataset?.preparation)} s. You can enter a different value above.</p>
                       )}
                       <fieldset>
                         <legend>Expert Mode</legend>

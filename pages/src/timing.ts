@@ -11,6 +11,7 @@ export function preparedEventOffset(preparation: Preparation): number | undefine
 }
 
 export function configForPreparedData(config: Config, preparation: Preparation): Config {
+  if (config.eventOffsetManual) return config;
   const offset = preparedEventOffset(preparation);
   return offset === undefined || offset === config.eventOffset
     ? config
@@ -21,7 +22,7 @@ export function correctPreparedResultTiming(result: Result, preparation?: Prepar
   const offset = preparedEventOffset(result.preparation || preparation);
   // Correct only the known legacy default on confirmed prepared data.
   // Custom files and other explicitly saved offsets retain their timing.
-  if (result.config?.eventOffset !== 1.2 || offset !== 0.2 ||
+  if (result.config?.eventOffsetManual || result.config?.eventOffset !== 1.2 || offset !== 0.2 ||
       !result.window_centers_seconds?.length ||
       !result.window_centers_seconds.every(Number.isFinite)) return result;
   return {

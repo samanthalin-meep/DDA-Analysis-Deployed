@@ -185,10 +185,11 @@ def analysis_spec(did,config_json):
             require(len(indices)>=2,'Select at least two channels.')
         groups=[{'electrode':'','condition':'','indices':indices}]
     count=1+(end-start-needed)//step
-    # Prepared trials carry their event position. Legacy preparation used the
-    # same 200 ms baseline but did not yet save this field.
+    # Preparation supplies the default. An onset entered by the user takes
+    # precedence, including zero, and remains part of the saved run settings.
     prep=d.get('preparation')
-    event_offset=float(prep.get('event_offset_seconds',0.2) if prep else cfg['eventOffset'])
+    event_offset=float(cfg['eventOffset'] if cfg.get('eventOffsetManual') or not prep
+                       else prep.get('event_offset_seconds',0.2))
     require(math.isfinite(event_offset),'Use a finite event onset in seconds.')
     centers=[float(d['time'][start])+(dm+max(delays[:nt])+(wl-1)/2+k*step)/d['rate']-event_offset for k in range(count)]
     return json.dumps({'groups':groups,'start':start,'end':end,'centers':centers,'rate':d['rate'],'event_offset_seconds':event_offset})

@@ -45,6 +45,14 @@ class EventTimingTests(unittest.TestCase):
             self.assertAlmostEqual(spec['centers'][0], .154-offset)
             self.assertAlmostEqual(spec['centers'][-1], .874-offset)
 
+    def test_manual_onset_overrides_preparation_including_zero(self):
+        for prep in [{'recording': 'Timing'}, {'recording': 'Timing', 'event_offset_seconds': .2}]:
+            for offset in [0, .2, .35, 1.2]:
+                spec = self.spec(prep, eventOffset=offset, eventOffsetManual=True)
+                self.assertEqual(spec['event_offset_seconds'], offset)
+                self.assertAlmostEqual(spec['centers'][0], .154-offset)
+                self.assertAlmostEqual(spec['centers'][-1], .874-offset)
+
     def test_invalid_event_onset_is_rejected(self):
         for offset in [float('nan'), float('inf')]:
             with self.assertRaisesRegex(ValueError, 'finite event onset'):
