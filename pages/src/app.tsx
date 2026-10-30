@@ -17,6 +17,8 @@ import { readConditions, readElectrodes } from "./recording-input";
 import { signalLabel, trialLabel } from "./signal-labels";
 import { SignalDetails } from "./signal-details";
 import { exportName } from "./export-names";
+import { configForPreparedData, correctPreparedResultTiming, preparedEventOffset } from "./timing";
+import { AnalysisWorkerClient } from "./analysis-worker";
 
 type Note = { time: string; text: string };
 type AnalysisStep = "settings" | "results";
@@ -80,12 +82,14 @@ function NumberField({
   onChange,
   min,
   step = 1,
+  disabled = false,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
   step?: number;
+  disabled?: boolean;
 }) {
   return (
     <label className="field">
@@ -95,6 +99,7 @@ function NumberField({
         min={min}
         step={step}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </label>
@@ -188,6 +193,7 @@ function App() {
   const electrodes = recordingOptions.edf.choices,
     conditions = recordingOptions.csv.choices;
   const [busy, setBusy] = useState(false),
+    [restoreNeeded, setRestoreNeeded] = useState(false),
     [status, setStatus] = useState("Ready"),
     [progress, setProgress] = useState(0),
     [error, setError] = useState(""),
@@ -224,14 +230,8 @@ function App() {
     [annotationLabel, setAnnotationLabel] = useState(""),
     [annotationTime, setAnnotationTime] = useState(0),
     [pairText, setPairText] = useState("");
-  const worker = useRef<Worker | null>(null),
-    pending = useRef(
-      new Map<
-        number,
-        { resolve: (v: any) => void; reject: (e: Error) => void }
-      >(),
-    ),
-    sequence = useRef(0),
+  const worker = useRef<AnalysisWorkerClient | null>(null),
+    taskGeneration = useRef(0),
     sources = useRef(new Map<string, Source>()),
     persistSources = useRef<Source[]>([]),
     openInput = useRef<HTMLInputElement>(null),
@@ -249,29 +249,15 @@ function App() {
   }
   function getWorker() {
     if (!worker.current) {
-      const w = new Worker(new URL(__WORKER__, document.baseURI), {
-        type: "module",
-      });
-      worker.current = w;
-      w.onmessage = (e) => {
-        if (e.data.type === "progress") {
-          setStatus(e.data.label);
-          setProgress(e.data.value);
-          return;
-        }
-        const item = pending.current.get(e.data.id);
-        if (item) {
-          pending.current.delete(e.data.id);
-          e.data.error
-            ? item.reject(Error(e.data.error))
-            : item.resolve(e.data.result);
-        }
-      };
-      w.onerror = (e) => {
-        for (const p of pending.current.values())
-          p.reject(Error(e.message || "The analysis worker stopped."));
-        pending.current.clear();
-      };
+      worker.current = new AnalysisWorkerClient(
+        () => new Worker(new URL(__WORKER__, document.baseURI), { type: "module" }),
+        (label, value) => { setStatus(label); setProgress(value); },
+        () => {
+          setFiles([]);
+          setActive("");
+          setRestoreNeeded(sources.current.size > 0);
+        },
+      );
     }
     return worker.current;
   }
@@ -280,11 +266,7 @@ function App() {
     payload: any = {},
     transfer: Transferable[] = [],
   ): Promise<T> {
-    const id = ++sequence.current;
-    return new Promise((resolve, reject) => {
-      pending.current.set(id, { resolve, reject });
-      getWorker().postMessage({ id, action, payload }, transfer);
-    });
+    return getWorker().request<T>(action, payload, transfer);
   }
   function report(e: unknown) {
     const text = errText(e);
@@ -298,29 +280,31 @@ function App() {
   }
   async function task<T>(
     label: string,
-    fn: () => Promise<T>,
+    fn: (isCurrent: () => boolean) => Promise<T>,
   ): Promise<T | undefined> {
     if (busy) return;
     setBusy(true);
     setStatus(label);
     setProgress(0);
     setError("");
+    const generation = ++taskGeneration.current;
     try {
-      const value = await fn();
+      const value = await fn(() => generation === taskGeneration.current);
+      if (generation !== taskGeneration.current) return;
       setStatus("Ready");
       setProgress(1);
       return value;
     } catch (e) {
-      report(e);
+      if (generation === taskGeneration.current) report(e);
     } finally {
-      setBusy(false);
+      if (generation === taskGeneration.current) setBusy(false);
     }
   }
   function selectFile(d: Dataset) {
     setActive(d.id);
     setResultId(results.find((r) => r.file_name === d.name)?.id || "");
     setConfig((c) => ({
-      ...c,
+      ...configForPreparedData(c, d.preparation),
       start: 0,
       end: (d.rows - 1) / d.rate,
       indices: d.columns.map((_, i) => i),
@@ -377,6 +361,7 @@ function App() {
   }, [theme]);
   useEffect(() => {
     let disposed = false;
+    const generation = taskGeneration.current;
     (async () => {
       try {
         const [storedFiles, storedResults, storedAnnotations] =
@@ -386,20 +371,29 @@ function App() {
             saved<typeof annotations>("annotations"),
           ]);
         if (disposed) return;
-        if (storedResults?.length) {
-          setResults(storedResults);
-          setResultId(storedResults[0].id);
+        const restoredResults = storedResults?.map((r) => correctPreparedResultTiming(
+          r, storedFiles?.find((source) => source.name === r.file_name)?.meta?.preparation,
+        ));
+        if (restoredResults?.length) {
+          setResults(restoredResults);
+          setResultId(restoredResults[0].id);
+          if (restoredResults.some((r, i) => r !== storedResults?.[i]))
+            notify("Corrected saved prepared-result event timing from 1.2 s to 0.2 s. Coefficient values are unchanged.");
         }
         if (storedAnnotations) setAnnotations(storedAnnotations);
         if (storedFiles?.length) {
           setBusy(true);
           setStatus("Open saved files");
-          for (const source of storedFiles) {
-            if (disposed) return;
+          for (const [index, source] of storedFiles.entries()) {
+            if (disposed || generation !== taskGeneration.current) return;
+            const pendingId = `restore:${index}`;
+            sources.current.set(pendingId, source);
             await addSource(source);
+            sources.current.delete(pendingId);
           }
+          if (disposed || generation !== taskGeneration.current) return;
           persistSources.current = storedFiles;
-          const restoredResult = storedResults?.find(
+          const restoredResult = restoredResults?.find(
             (r) => r.file_name === storedFiles.at(-1)?.name,
           );
           if (restoredResult) setResultId(restoredResult.id);
@@ -407,13 +401,15 @@ function App() {
           setBusy(false);
         }
       } catch (e) {
-        report(e);
-        setBusy(false);
+        if (!disposed && generation === taskGeneration.current) {
+          report(e);
+          setBusy(false);
+        }
       }
     })();
     return () => {
       disposed = true;
-      worker.current?.terminate();
+      worker.current?.cancel();
       worker.current = null;
     };
   }, []);
@@ -466,25 +462,23 @@ function App() {
     );
   }
   async function cancel() {
-    worker.current?.terminate();
-    worker.current = null;
-    for (const p of pending.current.values()) p.reject(Error("Canceled."));
-    pending.current.clear();
+    taskGeneration.current++;
+    worker.current?.cancel();
     setBusy(false);
     setStatus("Canceled");
-    const existing = [...sources.current.values()];
-    sources.current.clear();
-    setFiles([]);
-    setActive("");
-    setBusy(true);
-    try {
-      for (const source of existing) await addSource(source);
-      setStatus("Ready");
-    } catch (e) {
-      report(e);
-    } finally {
-      setBusy(false);
-    }
+  }
+  async function restoreOpenFiles() {
+    await task("Restore open files", async (isCurrent) => {
+      const existing = [...sources.current.entries()];
+      for (const [oldId, source] of existing) {
+        if (!isCurrent()) return;
+        await addSource(source);
+        sources.current.delete(oldId);
+      }
+      if (!isCurrent()) return;
+      setRestoreNeeded(false);
+      await persist();
+    });
   }
   async function openFiles(list: FileList | null) {
     if (!list) return;
@@ -579,12 +573,13 @@ function App() {
       recordingOptions.csv.error
     )
       return;
-    await task("Prepare recording", async () => {
+    await task("Prepare recording", async (isCurrent) => {
       const [edf, txt, csv] = await Promise.all([
         chosen.edf!.arrayBuffer(),
         chosen.txt!.arrayBuffer(),
         chosen.csv!.arrayBuffer(),
       ]);
+      if (!isCurrent()) return;
       const outputs = await rpc<Dataset[]>(
         "prepare",
         {
@@ -600,6 +595,7 @@ function App() {
         },
         [edf, txt, csv],
       );
+      if (!isCurrent()) return;
       for (const d of outputs) {
         const text = await rpc<string>("export", { id: d.id });
         const electrodeData = d.electrodes?.length
@@ -642,7 +638,7 @@ function App() {
       name: d.name,
       columns: d.columns,
       preparation: d.preparation,
-      config: { ...c, pairs },
+      config: { ...configForPreparedData(c, d.preparation), pairs },
     });
   }
   async function run() {
@@ -717,7 +713,10 @@ function App() {
       );
       if (restoredActive) selectFile(restoredActive);
       if (p.browser.config) {
-        setConfig({ ...defaultConfig, ...p.browser.config });
+        setConfig(configForPreparedData(
+          { ...defaultConfig, ...p.browser.config },
+          (restoredActive || restoredFiles.at(-1) || dataset)?.preparation,
+        ));
         setPairText(
           (p.browser.config.pairs || [])
             .map((pair: number[]) => pair.map((i) => i + 1).join(","))
@@ -726,7 +725,9 @@ function App() {
       }
       setExpert(Boolean(p.ddaConfig?.expertMode));
       if (p.browser.result) {
-        const r = p.browser.result as Result;
+        const original = p.browser.result as Result;
+        const r = correctPreparedResultTiming(original,
+          restoredFiles.find((d) => d.name === original.file_name)?.preparation);
         setResults((old) => [r, ...old.filter((v) => v.id !== r.id)]);
         setResultId(r.id);
       }
@@ -748,9 +749,10 @@ function App() {
               ...defaultConfig,
               window: p.ddaConfig.windowLengthSamples || 50,
               step: p.ddaConfig.windowStepSamples || 10,
-              eventOffset: p.ddaConfig.eventOffsetSeconds ?? 1.2,
+              eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? p.ddaConfig.eventOffsetSeconds ?? defaultConfig.eventOffset,
             }
-          : defaultConfig,
+          : { ...defaultConfig, ...r.config,
+              eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? defaultConfig.eventOffset },
         engine: r.engine_label || r.engineLabel || "DDALAB desktop",
         variants: r.variants.map((v: any) => ({
           ...v,
@@ -769,19 +771,20 @@ function App() {
           )
         )
           throw Error("The result contains invalid values.");
-      setResults((old) => [normalized, ...old]);
+      const corrected = correctPreparedResultTiming(normalized);
+      setResults((old) => [corrected, ...old]);
       setResultId(normalized.id);
       notify("Imported " + normalized.file_name);
     } else if (p.ddaConfig) {
       const c = p.ddaConfig;
-      setConfig((old) => ({
+      setConfig((old) => configForPreparedData({
         ...old,
         window: c.windowLengthSamples || 50,
         step: c.windowStepSamples || 10,
-        eventOffset: c.eventOffsetSeconds ?? 1.2,
+        eventOffset: c.eventOffsetSeconds ?? defaultConfig.eventOffset,
         delays: c.delays || [7, 10],
         terms: c.modelTerms || [1, 2, 10],
-      }));
+      }, dataset?.preparation));
     } else throw Error("Use a DDALAB session or result file.");
     setPage("DDA");
     setSub("DDA");
@@ -1024,6 +1027,12 @@ function App() {
           </button>
         </div>
       )}
+      {restoreNeeded && (
+        <div className="toolbar" role="status">
+          <span>Your open files have been kept.</span>
+          <button disabled={busy} onClick={restoreOpenFiles}>Restore open files</button>
+        </div>
+      )}
       <div className="main-shell">
         {filePanel && (
           <aside className="file-panel">
@@ -1240,8 +1249,12 @@ function App() {
                         label="Event onset from file start (s)"
                         value={config.eventOffset}
                         step={0.001}
+                        disabled={preparedEventOffset(dataset?.preparation) !== undefined}
                         onChange={(v) => change("eventOffset", v)}
                       />
+                      {preparedEventOffset(dataset?.preparation) !== undefined && (
+                        <p className="muted compact">Event timing is set by recording preparation.</p>
+                      )}
                       <fieldset>
                         <legend>Expert Mode</legend>
                         <label className="check">
@@ -1448,6 +1461,12 @@ function App() {
                       </label>
                     </div>
                     {resultTools}
+                    {result?.timing_correction && (
+                      <p className="muted compact" role="status">
+                        Time axis corrected: event onset {result.timing_correction.original_event_offset_seconds} s → {result.timing_correction.corrected_event_offset_seconds} s.
+                        {" "}Coefficient values are unchanged.
+                      </p>
+                    )}
                     <Tabs
                       items={["Graph", "Heatmap", "Details"]}
                       value={view}
@@ -1500,6 +1519,8 @@ function App() {
                                 {result.config.window} / {result.config.step}{" "}
                                 samples
                               </dd>
+                              <dt>Event onset from file start</dt>
+                              <dd>{result.config.eventOffset} s</dd>
                               <dt>Delays</dt>
                               <dd>{result.config.delays.join(", ")}</dd>
                               <dt>Model terms</dt>

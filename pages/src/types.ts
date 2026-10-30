@@ -13,6 +13,7 @@ export type Dataset = {
   preparation?: {
     recording?: string;
     event_sample_offset?: number;
+    event_offset_seconds?: number;
     bad_channels: string[];
     epochs: number;
     global_sd: number;
@@ -59,6 +60,10 @@ export type Result = {
   config: Config;
   engine: string;
   preparation?: Dataset["preparation"];
+  timing_correction?: {
+    original_event_offset_seconds: number;
+    corrected_event_offset_seconds: number;
+  };
 };
 export type Preview = { time: number[]; names: string[]; values: number[][]; source: string; trials: number };
 export const defaultConfig: Config = {
@@ -66,7 +71,7 @@ export const defaultConfig: Config = {
   step: 10,
   start: 0,
   end: 0.996,
-  eventOffset: 1.2,
+  eventOffset: 0.2,
   delays: [7, 10],
   terms: [1, 2, 10],
   dimension: 4,

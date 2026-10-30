@@ -272,7 +272,7 @@ def prepare(edf_path, log_text, csv_text, coordinates, electrodes=None, conditio
         outputs[0]['electrode_data'] = np.ascontiguousarray(epochs[ci][:,:,keep], dtype=np.float32)
         outputs[0]['electrodes'] = list(electrodes)
     progress('Preparation complete',1,1)
-    return outputs, counts, {'recording':recording, 'event_sample_offset':int(pulse_indices[0]-round(events[0][1]*1000)), 'bad_channels':['E'+str(i+1) for i in bad], 'epochs':len(events),'global_sd':float(sd), 'rejected_events':(np.flatnonzero(flags)+1).tolist()}
+    return outputs, counts, {'recording':recording, 'event_sample_offset':int(pulse_indices[0]-round(events[0][1]*1000)), 'event_offset_seconds':0.2, 'bad_channels':['E'+str(i+1) for i in bad], 'epochs':len(events),'global_sd':float(sd), 'rejected_events':(np.flatnonzero(flags)+1).tolist()}
 
 
 def prepared_csv(output):

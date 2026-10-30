@@ -3,10 +3,14 @@ let runtime;
 async function initialize() {
   if(runtime) return runtime;
   runtime=(async()=>{
-    self.postMessage({type:'progress',label:'Load analysis tools',value:0});
+    const progress=(label,value)=>self.postMessage({type:'progress',label,value});
+    progress('Load analysis tools',0);
     const [{loadPyodide},engine]=await Promise.all([import('./runtime/pyodide.mjs'),import('./engine/dda.js')]);
+    progress('Start analysis runtime',0.1);
     const py=await loadPyodide({indexURL:new URL('./runtime/',self.location.href).href});
-    await py.loadPackage(['numpy','scipy','scikit-learn']);
+    progress('Load scientific libraries',0.3);
+    await py.loadPackage(['numpy','scipy'],{messageCallback:message=>progress(message,0.4)});
+    progress('Load preparation code',0.7);
     py.FS.mkdirTree('/app');py.FS.mkdirTree('/input');
     for(const name of ['preparation.py','workspace.py']) {
       const response=await fetch(new URL('./python/'+name,self.location.href));
@@ -16,8 +20,11 @@ async function initialize() {
     py.runPython('import sys\nsys.path.insert(0,"/app")\nimport workspace');
     const api=py.pyimport('workspace');
     const response=await fetch(new URL('./coordinates.json',self.location.href));
+    if(!response.ok)throw Error('Cannot load electrode coordinates. Check that the website is available, then retry.');
     const coordinates=await response.text();
+    progress('Start DDA engine',0.9);
     await engine.default();
+    self.postMessage({type:'ready'});
     return {py,api,engine,coordinates};
   })();
   try{return await runtime;}catch(e){runtime=undefined;throw e;}
@@ -39,10 +46,13 @@ async function execute(action,payload) {
   if(action==='preview')return JSON.parse(api.preview(payload.id,JSON.stringify(payload.config)));
   if(action==='export')return api.export_dataset(payload.id);
   if(action==='electrodes')return JSON.parse(api.export_electrodes(payload.id));
-  if(action==='ica')return JSON.parse(api.run_ica(payload.id,JSON.stringify(payload.config)));
+  if(action==='ica') {
+    await py.loadPackage('scikit-learn');
+    return JSON.parse(api.run_ica(payload.id,JSON.stringify(payload.config)));
+  }
   if(action==='run') {
-    const cfg=payload.config;
-    const spec=JSON.parse(api.analysis_spec(payload.id,JSON.stringify(cfg)));
+    const spec=JSON.parse(api.analysis_spec(payload.id,JSON.stringify(payload.config)));
+    const cfg={...payload.config,eventOffset:spec.event_offset_seconds};
     const variants=[];
     for(let gi=0;gi<spec.groups.length;gi++){
       const group=spec.groups[gi];

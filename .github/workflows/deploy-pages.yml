@@ -59,6 +59,8 @@ jobs:
           node tests/verify-condition-timing.mjs
           node tests/verify-signal-labels.mjs
           node tests/verify-waveforms.mjs
+          node tests/verify-event-timing.mjs
+          node tests/verify-analysis-worker.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
