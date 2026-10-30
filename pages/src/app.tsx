@@ -126,6 +126,8 @@ function resultCSV(result: Result, variant: Variant) {
       "included_trials",
       "window_number",
       "time_relative_event_s",
+      "electrode_averaging",
+      "electrode_count",
       "measure",
       ["CT", "ST"].includes(variant.id) ? "a1" : "value",
     ].join(","),
@@ -138,10 +140,12 @@ function resultCSV(result: Result, variant: Variant) {
           result.file_name,
           g?.electrode || "",
           g?.condition || variant.row_labels[i],
-          g ? "pooled_cross_trial" : variant.id,
+          g ? result.config.electrodeAveraging === "coefficients" ? "mean_of_electrode_pooled_fits" : "pooled_cross_trial" : variant.id,
           g?.indices?.length || "",
           k + 1,
           result.window_centers_seconds[k],
+          result.config.electrodeAveraging ?? "signal",
+          result.electrode_results?.length || (g?.electrode.startsWith("AVG_") ? g.electrode.split("_").length - 1 : 1),
           variant.id === "CT" ? "a1" : variant.id,
           value,
         ]
@@ -611,6 +615,7 @@ function App() {
       }
       await persist();
       setUpload(false);
+      setConfig((c) => ({ ...c, electrodeAveraging: "coefficients" }));
       for (const key of ["edf", "txt", "csv"] as const) void pickRecording(key);
       setRecording("");
       setAverage(true);
@@ -715,7 +720,8 @@ function App() {
       if (restoredActive) selectFile(restoredActive);
       if (p.browser.config) {
         setConfig(configForPreparedData(
-          { ...defaultConfig, ...p.browser.config },
+          { ...defaultConfig, ...p.browser.config,
+            electrodeAveraging: p.browser.config.electrodeAveraging ?? "signal" },
           (restoredActive || restoredFiles.at(-1) || dataset)?.preparation,
         ));
         setPairText(
@@ -752,10 +758,12 @@ function App() {
               step: p.ddaConfig.windowStepSamples || 10,
               eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? p.ddaConfig.eventOffsetSeconds ?? defaultConfig.eventOffset,
               eventOffsetManual: r.reproduction?.event_offset_manual ?? r.config?.eventOffsetManual ?? p.ddaConfig.eventOffsetManual ?? false,
+              electrodeAveraging: r.reproduction?.electrode_averaging ?? r.config?.electrodeAveraging ?? p.ddaConfig.electrodeAveraging ?? "signal",
             }
           : { ...defaultConfig, ...r.config,
               eventOffset: r.reproduction?.event_offset_seconds ?? r.config?.eventOffset ?? defaultConfig.eventOffset,
-              eventOffsetManual: r.reproduction?.event_offset_manual ?? r.config?.eventOffsetManual ?? false },
+              eventOffsetManual: r.reproduction?.event_offset_manual ?? r.config?.eventOffsetManual ?? false,
+              electrodeAveraging: r.reproduction?.electrode_averaging ?? r.config?.electrodeAveraging ?? "signal" },
         engine: r.engine_label || r.engineLabel || "DDALAB desktop",
         variants: r.variants.map((v: any) => ({
           ...v,
@@ -786,6 +794,7 @@ function App() {
         step: c.windowStepSamples || 10,
         eventOffset: c.eventOffsetSeconds ?? defaultConfig.eventOffset,
         eventOffsetManual: c.eventOffsetManual ?? false,
+        electrodeAveraging: c.electrodeAveraging ?? "signal",
         delays: c.delays || [7, 10],
         terms: c.modelTerms || [1, 2, 10],
       }, dataset?.preparation));
@@ -1223,6 +1232,19 @@ function App() {
                           <p className="muted compact">Open a data file.</p>
                         )}
                       </fieldset>
+                      {!!dataset?.groups.length && (
+                        <label className="field">
+                          <span>Electrode averaging</span>
+                          <select value={config.electrodeAveraging ?? "signal"}
+                            onChange={(e) => change("electrodeAveraging", e.target.value)}>
+                            <option value="coefficients">DDA first, then average electrodes</option>
+                            <option value="signal">Average EEG first (original method)</option>
+                          </select>
+                        </label>
+                      )}
+                      {dataset?.electrodes?.length && config.electrodeAveraging === "coefficients" ? (
+                        <p className="muted compact">Fit all {dataset.electrodes.length} retained electrodes separately using the selected trials in each condition, then average their DDA values.</p>
+                      ) : null}
                       <NumberField
                         label="Window length (samples)"
                         value={config.window}
@@ -1242,6 +1264,9 @@ function App() {
                         step={0.004}
                         onChange={(v) => change("start", v)}
                       />
+                      {dataset && (
+                        <p className="muted compact">At {dataset.rate} Hz: {Number((config.window / dataset.rate * 1000).toFixed(1))} ms per fit, {Number((config.step / dataset.rate * 1000).toFixed(1))} ms per step.</p>
+                      )}
                       <NumberField
                         label="End (s)"
                         value={config.end}
@@ -1464,6 +1489,13 @@ function App() {
                       </label>
                     </div>
                     {resultTools}
+                    {!!result?.trial_groups.length && (
+                      <p className="muted compact">
+                        {result.config.electrodeAveraging === "coefficients"
+                          ? `DDA first; mean of ${result.electrode_results?.length || 1} electrode fits. Trials are pooled separately within each condition.`
+                          : "Original method: DDA fits the prepared signal; combined electrodes were averaged as EEG before fitting."}
+                      </p>
+                    )}
                     {result?.timing_correction && (
                       <p className="muted compact" role="status">
                         Time axis corrected: event onset {result.timing_correction.original_event_offset_seconds} s → {result.timing_correction.corrected_event_offset_seconds} s.
@@ -1479,6 +1511,7 @@ function App() {
                       <>
                         {view === "Graph" ? (
                           <LinePlot
+                            key={`${result.id}:${variant.id}`}
                             time={result.window_centers_seconds}
                             values={variant.matrix}
                             names={variant.row_labels}
@@ -1524,6 +1557,12 @@ function App() {
                               </dd>
                               <dt>Event onset from file start</dt>
                               <dd>{result.config.eventOffset} s</dd>
+                              <dt>Electrode averaging</dt>
+                              <dd>{result.config.electrodeAveraging === "coefficients" ? "DDA first, then mean of electrode values" : "Prepared EEG first (original method)"}</dd>
+                              {result.electrode_results && <>
+                                <dt>Electrodes fitted individually</dt>
+                                <dd>{result.electrode_results.length}</dd>
+                              </>}
                               <dt>Delays</dt>
                               <dd>{result.config.delays.join(", ")}</dd>
                               <dt>Model terms</dt>
@@ -2683,8 +2722,9 @@ function App() {
                       checked={average}
                       onChange={() => setAverage(true)}
                     />
-                    Average within each trial
+                    Keep electrodes together for DDA
                   </label>
+                  {average && <p className="muted compact">Individual electrode signals are retained for DDA. The prepared CSV contains their EEG average for compatibility; save a full session to keep the individual signals.</p>}
                 </fieldset>
               )}
               <details className="recipe">

@@ -32,6 +32,7 @@ export type Config = {
   end: number;
   eventOffset: number;
   eventOffsetManual?: boolean;
+  electrodeAveraging?: "signal" | "coefficients";
   delays: number[];
   terms: number[];
   dimension: number;
@@ -61,6 +62,7 @@ export type Result = {
   config: Config;
   engine: string;
   preparation?: Dataset["preparation"];
+  electrode_results?: { electrode: string; variants: Variant[] }[];
   timing_correction?: {
     original_event_offset_seconds: number;
     corrected_event_offset_seconds: number;
@@ -73,6 +75,7 @@ export const defaultConfig: Config = {
   start: 0,
   end: 0.996,
   eventOffset: 0.2,
+  electrodeAveraging: "coefficients",
   delays: [7, 10],
   terms: [1, 2, 10],
   dimension: 4,

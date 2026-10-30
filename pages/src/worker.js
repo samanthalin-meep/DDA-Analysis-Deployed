@@ -1,4 +1,5 @@
 // All file processing happens in this worker. No uploads, telemetry, or server API.
+import { averageElectrodeVariants } from './electrode-averaging.ts';
 let runtime;
 async function initialize() {
   if(runtime) return runtime;
@@ -53,10 +54,14 @@ async function execute(action,payload) {
   if(action==='run') {
     const spec=JSON.parse(api.analysis_spec(payload.id,JSON.stringify(payload.config)));
     const cfg={...payload.config,eventOffset:spec.event_offset_seconds};
+    const electrodes=spec.analysis_electrodes;
+    const fitElectrode=(electrode,ei,total)=>{
     const variants=[];
     for(let gi=0;gi<spec.groups.length;gi++){
       const group=spec.groups[gi];
-      const matrix=api.analysis_matrix(payload.id,JSON.stringify(group.indices),spec.start,spec.end);
+      const matrix=electrode
+        ?api.analysis_matrix(payload.id,JSON.stringify(group.indices),spec.start,spec.end,electrode)
+        :api.analysis_matrix(payload.id,JSON.stringify(group.indices),spec.start,spec.end);
       const buffer=matrix.getBuffer('f64');
       const pooled=cfg.variants.includes('CT')&&!cfg.pairs;
       const request={file_path:payload.name,channels:null,time_range:{start:0,end:spec.end-spec.start-1},
@@ -80,21 +85,26 @@ async function execute(action,payload) {
       try{
         result=JSON.parse(engine.run_dda(JSON.stringify(request),buffer.data,spec.end-spec.start,group.indices.length,
           JSON.stringify(group.indices.map(i=>payload.columns[i])),s=>{
-            const p=JSON.parse(s);self.postMessage({type:'progress',label:group.condition?`Run CT: ${group.condition}`:p.stage_label,
-               value:(gi+p.step_index/Math.max(1,p.total_steps))/spec.groups.length});
+            const p=JSON.parse(s);self.postMessage({type:'progress',label:group.condition?`Run CT: ${electrode?electrode+' · ':''}${group.condition} (${ei+1}/${total} electrodes)`:p.stage_label,
+               value:(ei+(gi+p.step_index/Math.max(1,p.total_steps))/spec.groups.length)/total});
           }));
       }finally{buffer.release();matrix.destroy();}
       for(const v of result.variant_results){
         const previous=variants.find(x=>x.id===v.variant_id);
         const labels=group.condition?[group.condition]:v.channel_labels;
         if(previous){previous.matrix.push(...v.q_matrix);previous.row_labels.push(...labels);}
-        else variants.push({id:v.variant_id,label:group.condition?`Pooled cross-trial CT - ${group.electrode} - a1`:v.variant_name,
+        else variants.push({id:v.variant_id,label:group.condition?`Pooled cross-trial CT - ${electrode||group.electrode} - a1`:v.variant_name,
             matrix:v.q_matrix,row_labels:labels});
       }
     }
     if(variants.some(v=>v.matrix.some(row=>row.some(x=>!Number.isFinite(x)))))throw Error('The fit returned a nonfinite coefficient. Check the selected channels and model.');
+    return variants;
+    };
+    const electrode_results=electrodes.map((electrode,ei)=>({electrode,variants:fitElectrode(electrode,ei,electrodes.length)}));
+    const variants=electrode_results.length?averageElectrodeVariants(electrode_results):fitElectrode(null,0,1);
     return {id:crypto.randomUUID(),file_name:payload.name,created_at:new Date().toISOString(),variants,
       window_centers_seconds:spec.centers,trial_groups:spec.groups[0]?.condition?spec.groups:[],config:cfg,
+      ...(electrode_results.length?{electrode_results}:{}),
       engine:'Original dda-rs 0.2.0 / WebAssembly',preparation:payload.preparation||null};
   }
   throw Error('Unknown operation.');

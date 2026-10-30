@@ -20,6 +20,8 @@ The input adapter also accepts stimulus tables with `Duration`, `Intertrial Inte
 
 `python/workspace.py` follows the original desktop loader's trial-column grouping and the FastICA settings in `reference/desktop/ddalab_qt/backend/api.py`. Scientific library versions are pinned in `runtime-manifest.json` and the Pyodide lock file.
 
+The explicit **DDA first, then average electrodes** mode runs the unchanged pooled-trial engine independently on each retained electrode's signals, separately by condition. `src/electrode-averaging.ts` then takes the equal-weight arithmetic mean of the fitted coefficient rows. Per-electrode results remain in the saved result. This mode changes the aggregation stage from the earlier prepared-EEG average and is not one joint electrode-and-trial regression. The original signal-averaging mode remains selectable and is preserved for old saved sessions.
+
 `scripts/engine.mjs` copies the original MIT-licensed Rust numerical sources from `vendor/dda-rs`. It substitutes a browser monotonic clock and initializes the progress timer without subtracting one second, which could underflow in a newly created worker. Numerical algorithms are unchanged. Rayon uses its documented single-thread fallback. The wrapper only accepts a request, labels, and an f64 matrix, and returns the original result.
 
 ## Interface

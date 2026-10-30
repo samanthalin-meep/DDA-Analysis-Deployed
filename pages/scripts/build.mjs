@@ -47,7 +47,14 @@ await build({
 const worker = (await readFile(resolve(root, "src/worker.js"), "utf8"))
   .replace("'./engine/dda.js'", `'./engine-${revision}/dda.js'`)
   .replace("'./python/'", `'./python-${revision}/'`);
-await writeFile(resolve(root, `dist/worker-${revision}.js`), worker);
+await build({
+  stdin: { contents: worker, resolveDir: resolve(root, "src"), sourcefile: "worker.js" },
+  bundle: true,
+  format: "esm",
+  target: "es2022",
+  outfile: resolve(root, `dist/worker-${revision}.js`),
+  external: ["./runtime/*", `./engine-${revision}/*`],
+});
 const index = (await readFile(resolve(root, "index.html"), "utf8")).replaceAll(
   "assets/app.",
   `assets/app-${revision}.`,

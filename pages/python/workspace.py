@@ -176,10 +176,18 @@ def analysis_spec(did,config_json):
     require(len(cfg['terms'])>=1 and all(int(t)>0 for t in cfg['terms']),'Select positive model term indices.')
     needed=wl+2*dm+max(delays[:nt]);require(end-start>=needed, f'The selected interval needs at least {needed} samples.')
     groups=groups_for(d['columns'],set(indices))
+    electrode_averaging=cfg.get('electrodeAveraging','signal')
+    require(electrode_averaging in ('signal','coefficients'),'Choose an electrode averaging method.')
+    analysis_electrodes=[]
     if groups:
         require(cfg['variants']==['CT'],'Condition trial files require pooled CT. Run other variants on continuous channel files.')
         require(not cfg.get('pairs'),'Condition trial files require pooled trials.')
         for g in groups: require(len(g['indices'])>=2,'Condition '+g['condition']+' needs at least two selected trials.')
+        if electrode_averaging == 'coefficients':
+            analysis_electrodes=d['electrodes']
+            require(analysis_electrodes or not groups[0]['electrode'].startswith('AVG_') or
+                    len(groups[0]['electrode'].split('_')) == 2,
+                    'This file contains an EEG average only. Prepare the recording again or open a full session with individual electrodes to average DDA results after fitting.')
     else:
         if any(v in cfg['variants'] for v in ('CT','CD','SY','CCD','SICCD','TRCCD','MVCCD','CCDSTAB')):
             require(len(indices)>=2,'Select at least two channels.')
@@ -192,11 +200,16 @@ def analysis_spec(did,config_json):
                        else prep.get('event_offset_seconds',0.2))
     require(math.isfinite(event_offset),'Use a finite event onset in seconds.')
     centers=[float(d['time'][start])+(dm+max(delays[:nt])+(wl-1)/2+k*step)/d['rate']-event_offset for k in range(count)]
-    return json.dumps({'groups':groups,'start':start,'end':end,'centers':centers,'rate':d['rate'],'event_offset_seconds':event_offset})
+    return json.dumps({'groups':groups,'start':start,'end':end,'centers':centers,'rate':d['rate'],
+                       'event_offset_seconds':event_offset,'analysis_electrodes':analysis_electrodes})
 
-def analysis_matrix(did,indices_json,start,end):
+def analysis_matrix(did,indices_json,start,end,electrode=None):
     d=datasets[did];indices=json.loads(indices_json)
-    return np.ascontiguousarray(d['matrix'][int(start):int(end),indices]).ravel()
+    source=d['matrix']
+    if electrode is not None:
+        require(electrode in d['electrodes'],'The selected electrode is not retained in this file.')
+        source=d['electrode_data'][d['electrodes'].index(electrode)]
+    return np.ascontiguousarray(source[int(start):int(end),indices],dtype=np.float64).ravel()
 
 def run_ica(did,config_json):
     from sklearn.decomposition import FastICA

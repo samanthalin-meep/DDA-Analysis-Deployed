@@ -61,6 +61,7 @@ jobs:
           node tests/verify-waveforms.mjs
           node tests/verify-event-timing.mjs
           node tests/verify-analysis-worker.mjs
+          node tests/verify-electrode-averaging.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -146,6 +146,12 @@ export function LinePlot({
             <rect x={left} y={top} width={pw} height={ph} />
           </clipPath>
         </defs>
+        {xmin <= 0 && xmax >= 0 && (
+          <line x1={x(0)} x2={x(0)} y1={top} y2={top + ph}
+            stroke="var(--muted)" strokeDasharray="4 4">
+            <title>Event onset (0 s)</title>
+          </line>
+        )}
         <g clipPath={`url(#${id}-clip)`}>
           {values.map(
             (row, i) =>

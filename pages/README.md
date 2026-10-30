@@ -8,9 +8,9 @@ The deploy workflow runs on every push to `main`. A successful build publishes t
 
 1. Select **Upload recording**.
 2. Select the EDF, acquisition TXT, and conditions CSV from one recording.
-3. Enter a recording ID. All electrodes and analysis conditions are selected when their files load. Use the checkboxes or **Select all** and **Clear** at the bottom of each box to change the selection. **Average within each trial** is selected by default.
+3. Enter a recording ID. All electrodes and analysis conditions are selected when their files load. Use the checkboxes or **Select all** and **Clear** at the bottom of each box to change the selection. **Keep electrodes together for DDA** is selected by default and retains every selected electrode's individual accepted trials.
 4. Select **Run preparation**. The same page focuses **DDA Configuration** with the prepared data loaded.
-5. Select trials and DDA settings. Select **Run DDA**. The same page focuses **Results**. Configuration and results remain on the same page.
+5. Select trials and DDA settings. New preparations use **DDA first, then average electrodes**: fit each electrode separately using all selected trials in each condition, then take an equal-weight mean of its DDA coefficients across electrodes. **Average EEG first (original method)** remains available for comparison. Select **Run DDA**. The same page focuses **Results**. Configuration and results remain on the same page.
 6. Download CSV, PNG, SVG, JSON, or a `.ddalab` session.
 
 Prepared CSV files can also be opened directly. A session contains its prepared data, settings, annotations, and selected result. Browser storage can retain prepared files and results across reloads. Raw EDF/TXT/conditions files are removed from worker memory after preparation. No recording is sent over the network.
@@ -18,6 +18,10 @@ Prepared CSV files can also be opened directly. A session contains its prepared 
 In Visualize, select one or more electrodes. One selection shows that electrode; multiple selections show their mean within each trial. Select a condition, then choose **Trial average**, **Separate trials**, or **One trial**. The trial list has **Select all** and **Clear** controls. The average uses every selected trial in that condition. Separate trials appear in stacked rows, eight per page, with one voltage scale across pages. Previous/Next controls reach every selected trial. The graph export contains the displayed rows.
 
 New preparations retain the cleaned, accepted individual signals used to make the electrode average. Browser storage and full `.ddalab` sessions preserve these signals. Prepared CSV files contain the original analysis matrix only; older average-only files require the three source files to be prepared once again to enable electrode selection. Visualization selection and trial averaging do not change the DDA matrix, settings, or selected analysis trials.
+
+The new averaging mode uses the retained individual signals, not the prepared CSV's EEG average. It saves the per-electrode DDA results as well as their mean. An average-only CSV cannot be used for this mode; prepare its source recording again or open a full session containing the individual signals. Old saved sessions retain their original averaging method. The CSV result export records averaging stage and electrode count. This is an across-electrode mean within one recording, not a participant grand average.
+
+The practice defaults remain exploratory: 250 Hz prepared data, 50 fitted samples (200 ms), 10-sample steps (40 ms), delays of 7 and 10 samples (28/40 ms), and model terms `[1,2,10]`. Delay and derivative context expands each input block to 68 samples. The first fitted center is −46 ms but its target interval spans −144 to +52 ms; it is not a purely pre-event estimate. Prepared clips place the event at 0.2 s from file start. A manually entered event onset is honored and recorded. Study-specific window, model, artifact, electrode and aggregation choices require protocol confirmation.
 
 Downloads start with the Recording ID, such as `I1_R4_prepared.csv`, `I1_R4_results_CT.csv`, and `I1_R4_graph.png`. All PNG and SVG graphs use `[Recording ID]_graph` without additional suffixes. Older imported files use their source filename when no Recording ID was saved. Dataset column names and analysis identifiers retain their full original values.
 
@@ -78,6 +82,9 @@ node tests/verify-recording-input.mjs
 node tests/verify-condition-timing.mjs
 node tests/verify-signal-labels.mjs
 node tests/verify-waveforms.mjs
+node tests/verify-event-timing.mjs
+node tests/verify-analysis-worker.mjs
+node tests/verify-electrode-averaging.mjs
 pnpm dev
 ```
 
